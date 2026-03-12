@@ -1,0 +1,218 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
+import {
+  Dimensions,
+  FlatList,
+  Image,
+  ImageBackground,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+
+const { width } = Dimensions.get('window');
+
+const slides = [
+  {
+    key: '1',
+    title: 'Track Your Vitals',
+    desc: 'Monitor heart rate, blood oxygen, respiratory rate, and blood pressure in real time directly from your device.',
+  },
+  {
+    key: '2',
+    title: 'Get Help Instantly',
+    desc: 'One tap SOS connects you to emergency services and notifies your emergency contacts automatically.',
+  },
+  {
+    key: '3',
+    title: 'Stay Prepared',
+    desc: 'Find nearby AEDs, emergency clinics, and first-responders — even when offline.',
+  },
+];
+
+export default function OnboardingSlides() {
+  const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const goNext = () => {
+    if (currentIndex < slides.length - 1) {
+      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      router.replace('/login');
+    }
+  };
+
+  return (
+    <View style={styles.root}>
+      {/* Map background at 15% opacity */}
+      <ImageBackground
+        source={require('../assets/images/map.png')}
+        style={styles.mapBg}
+        resizeMode="cover"
+        imageStyle={{ opacity: 0.15 }}
+      />
+
+      {/* Logo */}
+      <View style={styles.logoWrapper}>
+        <View style={styles.logoBox} />
+        <Text style={styles.logoText}>
+          <Text style={{ fontWeight: '300' }}>First</Text>
+          <Text style={{ fontWeight: '700' }}>Line</Text>
+        </Text>
+      </View>
+
+      {/* Slides */}
+      <FlatList
+        ref={flatListRef}
+        data={slides}
+        horizontal
+        pagingEnabled
+        scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.key}
+        renderItem={({ item }) => (
+          <View style={styles.slide}>
+            {/* Image placeholder */}
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="image-outline" size={48} color="#C0C0C0" />
+            </View>
+          </View>
+        )}
+        style={{ flexGrow: 0 }}
+      />
+
+      {/* Dots */}
+      <View style={styles.dotsRow}>
+        {slides.map((_, i) => (
+          <View
+            key={i}
+            style={[styles.dot, i === currentIndex ? styles.dotActive : styles.dotInactive]}
+          />
+        ))}
+      </View>
+
+      {/* Description */}
+      <Text style={styles.desc}>{slides[currentIndex].desc}</Text>
+
+      {/* Buttons */}
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.6 }]}
+          onPress={() => router.replace('/login')}
+        >
+          <Text style={styles.skipText}>Skip</Text>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.continueBtn, pressed && { opacity: 0.85 }]}
+          onPress={goNext}
+        >
+          <Text style={styles.continueText}>
+            {currentIndex === slides.length - 1 ? 'Get Started' : 'Continue'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    paddingBottom: 50,
+  },
+  mapBg: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  logoWrapper: {
+    alignItems: 'center',
+    marginTop: 64,
+    marginBottom: 24,
+  },
+  logoBox: {
+    width: 42,
+    height: 42,
+    backgroundColor: '#D0D0D0',
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  logoText: {
+    fontSize: 18,
+    color: '#1E1E1E',
+    letterSpacing: 0.5,
+  },
+  slide: {
+    width,
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  imagePlaceholder: {
+    width: width - 80,
+    height: (width - 80) * 1.15,
+    backgroundColor: '#D9D9D9',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    marginTop: 24,
+    gap: 10,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dotActive: {
+    backgroundColor: '#1E1E1E',
+  },
+  dotInactive: {
+    backgroundColor: '#D0D0D0',
+  },
+  desc: {
+    fontSize: 15,
+    color: '#4A4A4A',
+    lineHeight: 24,
+    textAlign: 'center',
+    marginTop: 28,
+    marginHorizontal: 40,
+    flex: 1,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 28,
+    marginTop: 20,
+  },
+  skipBtn: {
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 50,
+    backgroundColor: '#ECECEC',
+  },
+  skipText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#555555',
+  },
+  continueBtn: {
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 50,
+    backgroundColor: '#1E1E1E',
+  },
+  continueText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+});
