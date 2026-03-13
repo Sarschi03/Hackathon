@@ -96,6 +96,17 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
+        {/* Google Sign In */}
+        <Pressable
+          style={({ pressed }) => [styles.googleBtn, pressed && { opacity: 0.85 }]}
+          onPress={() => {}}
+        >
+          <View style={styles.googleLogoCircle}>
+            <Text style={styles.googleG}>G</Text>
+          </View>
+          <Text style={styles.googleBtnText}>Continue with Google</Text>
+        </Pressable>
+
         {/* Sign Up link */}
         <View style={styles.signupRow}>
           <Text style={styles.signupPrompt}>Don't have an account? </Text>
@@ -219,6 +230,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#A0A0A0',
     fontWeight: '500',
+  },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 50,
+    paddingVertical: 15,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+    marginBottom: 24,
+  },
+  googleLogoCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleG: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#4285F4',
+  },
+  googleBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E1E1E',
   },
   signupRow: {
     flexDirection: 'row',
