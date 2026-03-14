@@ -2,6 +2,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { ActivityIndicator, View } from 'react-native';
+import { useConsent } from '@/hooks/use-consent';
+import ConsentScreen from '@/app/consent-screen';
+
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -12,6 +16,19 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { hasConsented, acceptConsent } = useConsent();
+
+  if (hasConsented === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+    }
+
+  if (!hasConsented) {
+    return <ConsentScreen onAccept={acceptConsent} />;
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
