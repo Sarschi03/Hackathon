@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,15 +14,50 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { api } from '@/convex/_generated/api';
+import { useAppSession } from '@/hooks/use-app-session';
+
+type Role = 'citizen' | 'responder' | 'dual';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { sessionToken, isReady } = useAppSession();
+  const updateIdentity = useMutation(api.session.updateIdentity);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [role, setRole] = useState<Role>('citizen');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSignup = async () => {
+    if (!sessionToken) {
+      return;
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await updateIdentity({
+        sessionToken,
+        fullName: name || 'FirstLine User',
+        email,
+        role,
+      });
+      router.replace('/(tabs)');
+    } catch (signupError) {
+      setError(signupError instanceof Error ? signupError.message : 'Unable to create account.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -28,7 +65,6 @@ export default function SignupScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Logo */}
         <View style={styles.logoWrapper}>
           <View style={styles.logoBox} />
           <Text style={styles.logoText}>
@@ -38,9 +74,8 @@ export default function SignupScreen() {
         </View>
 
         <Text style={styles.heading}>Create account</Text>
-        <Text style={styles.subheading}>Join FirstLine today</Text>
+        <Text style={styles.subheading}>Create your Convex-backed emergency profile</Text>
 
-        {/* Full Name */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Full Name</Text>
           <View style={styles.inputWrapper}>
@@ -56,7 +91,6 @@ export default function SignupScreen() {
           </View>
         </View>
 
-        {/* Email */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputWrapper}>
@@ -73,14 +107,37 @@ export default function SignupScreen() {
           </View>
         </View>
 
-        {/* Password */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Account Type</Text>
+          <View style={styles.roleRow}>
+            {[
+              { value: 'citizen', label: 'User' },
+              { value: 'responder', label: 'Responder' },
+              { value: 'dual', label: 'Both' },
+            ].map((option) => (
+              <Pressable
+                key={option.value}
+                style={[styles.roleChip, role === option.value && styles.roleChipActive]}
+                onPress={() => setRole(option.value as Role)}
+              >
+                <Text style={[styles.roleChipText, role === option.value && styles.roleChipTextActive]}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.helperText}>
+            Responders are created in Convex immediately, but must still be manually verified before receiving alerts.
+          </Text>
+        </View>
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="lock-closed-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="••••••••"
+              placeholder="Password"
               placeholderTextColor="#B0B3B8"
               secureTextEntry={!showPassword}
               value={password}
@@ -96,14 +153,13 @@ export default function SignupScreen() {
           </View>
         </View>
 
-        {/* Confirm Password */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Confirm Password</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="lock-closed-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="••••••••"
+              placeholder="Confirm password"
               placeholderTextColor="#B0B3B8"
               secureTextEntry={!showConfirm}
               value={confirm}
@@ -119,33 +175,20 @@ export default function SignupScreen() {
           </View>
         </View>
 
-        {/* Sign Up button */}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
         <Pressable
           style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => void handleSignup()}
+          disabled={!isReady || isSubmitting}
         >
-          <Text style={styles.primaryBtnText}>Create Account</Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryBtnText}>{isReady ? 'Create Account' : 'Preparing session...'}</Text>
+          )}
         </Pressable>
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Google Sign Up */}
-        <Pressable
-          style={({ pressed }) => [styles.googleBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => {}}
-        >
-          <View style={styles.googleLogoCircle}>
-            <Text style={styles.googleG}>G</Text>
-          </View>
-          <Text style={styles.googleBtnText}>Continue with Google</Text>
-        </Pressable>
-
-        {/* Back to login */}
         <View style={styles.loginRow}>
           <Text style={styles.loginPrompt}>Already have an account? </Text>
           <TouchableOpacity onPress={() => router.back()}>
@@ -158,51 +201,15 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#F7F8FA',
-  },
-  scroll: {
-    padding: 28,
-    paddingTop: 72,
-    paddingBottom: 60,
-  },
-  logoWrapper: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoBox: {
-    width: 46,
-    height: 46,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  logoText: {
-    fontSize: 20,
-    color: '#1E1E1E',
-    letterSpacing: 0.5,
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1E1E1E',
-    marginBottom: 6,
-  },
-  subheading: {
-    fontSize: 15,
-    color: '#6C7075',
-    marginBottom: 32,
-  },
-  inputGroup: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#3A3A3A',
-    marginBottom: 8,
-  },
+  root: { flex: 1, backgroundColor: '#F7F8FA' },
+  scroll: { padding: 28, paddingTop: 72, paddingBottom: 60 },
+  logoWrapper: { alignItems: 'center', marginBottom: 40 },
+  logoBox: { width: 46, height: 46, backgroundColor: '#1E1E1E', borderRadius: 8, marginBottom: 10 },
+  logoText: { fontSize: 20, color: '#1E1E1E', letterSpacing: 0.5 },
+  heading: { fontSize: 28, fontWeight: '800', color: '#1E1E1E', marginBottom: 6 },
+  subheading: { fontSize: 15, color: '#6C7075', marginBottom: 32 },
+  inputGroup: { marginBottom: 18 },
+  label: { fontSize: 13, fontWeight: '600', color: '#3A3A3A', marginBottom: 8 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -212,101 +219,20 @@ const styles = StyleSheet.create({
     borderColor: '#E8E8E8',
     paddingHorizontal: 14,
     height: 52,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: '#1E1E1E',
-  },
-  eyeBtn: {
-    padding: 4,
-  },
-  primaryBtn: {
-    backgroundColor: '#1E1E1E',
-    borderRadius: 50,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  primaryBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
-  loginRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  loginPrompt: {
-    fontSize: 14,
-    color: '#6C7075',
-  },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E1E1E',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  dividerText: {
-    fontSize: 13,
-    color: '#A0A0A0',
-    fontWeight: '500',
-  },
-  googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 50,
-    paddingVertical: 15,
-    borderWidth: 1.5,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-    marginBottom: 24,
-  },
-  googleLogoCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleG: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#4285F4',
-  },
-  googleBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E1E1E',
-  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15, color: '#1E1E1E' },
+  eyeBtn: { padding: 4 },
+  roleRow: { flexDirection: 'row', gap: 10 },
+  roleChip: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E4E7EB' },
+  roleChipActive: { backgroundColor: '#1E1E1E', borderColor: '#1E1E1E' },
+  roleChipText: { color: '#1E1E1E', fontWeight: '600' },
+  roleChipTextActive: { color: '#FFFFFF' },
+  helperText: { fontSize: 12, lineHeight: 18, color: '#6C7075', marginTop: 8 },
+  errorText: { color: '#D64545', fontSize: 13, marginBottom: 14 },
+  primaryBtn: { backgroundColor: '#1E1E1E', borderRadius: 50, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  loginPrompt: { fontSize: 14, color: '#6C7075' },
+  loginLink: { fontSize: 14, fontWeight: '700', color: '#1E1E1E' },
 });

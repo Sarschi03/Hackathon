@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,12 +14,34 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { api } from '@/convex/_generated/api';
+import { useAppSession } from '@/hooks/use-app-session';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { sessionToken, isReady } = useAppSession();
+  const updateIdentity = useMutation(api.session.updateIdentity);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    if (!sessionToken) {
+      return;
+    }
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await updateIdentity({ sessionToken, email });
+      router.replace('/(tabs)');
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Unable to sign in.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -25,7 +49,6 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Logo */}
         <View style={styles.logoWrapper}>
           <View style={styles.logoBox} />
           <Text style={styles.logoText}>
@@ -35,9 +58,8 @@ export default function LoginScreen() {
         </View>
 
         <Text style={styles.heading}>Welcome back</Text>
-        <Text style={styles.subheading}>Sign in to continue</Text>
+        <Text style={styles.subheading}>Sign in to continue with your current device session</Text>
 
-        {/* Email */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputWrapper}>
@@ -54,14 +76,13 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Password */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="lock-closed-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="••••••••"
+              placeholder="Password"
               placeholderTextColor="#B0B3B8"
               secureTextEntry={!showPassword}
               value={password}
@@ -77,39 +98,23 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.forgotRow}>
-          <Text style={styles.forgotText}>Forgot password?</Text>
-        </TouchableOpacity>
+        <Text style={styles.helperText}>Passwords are not validated yet in this MVP. Convex stores the session identity and health data flow.</Text>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        {/* Sign In button */}
         <Pressable
           style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => void handleLogin()}
+          disabled={!isReady || isSubmitting}
         >
-          <Text style={styles.primaryBtnText}>Sign In</Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryBtnText}>{isReady ? 'Sign In' : 'Preparing session...'}</Text>
+          )}
         </Pressable>
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Google Sign In */}
-        <Pressable
-          style={({ pressed }) => [styles.googleBtn, pressed && { opacity: 0.85 }]}
-          onPress={() => {}}
-        >
-          <View style={styles.googleLogoCircle}>
-            <Text style={styles.googleG}>G</Text>
-          </View>
-          <Text style={styles.googleBtnText}>Continue with Google</Text>
-        </Pressable>
-
-        {/* Sign Up link */}
         <View style={styles.signupRow}>
-          <Text style={styles.signupPrompt}>Don't have an account? </Text>
+          <Text style={styles.signupPrompt}>Do not have an account? </Text>
           <TouchableOpacity onPress={() => router.push('/signup')}>
             <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
@@ -120,51 +125,15 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#F7F8FA',
-  },
-  scroll: {
-    padding: 28,
-    paddingTop: 72,
-    paddingBottom: 60,
-  },
-  logoWrapper: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoBox: {
-    width: 46,
-    height: 46,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  logoText: {
-    fontSize: 20,
-    color: '#1E1E1E',
-    letterSpacing: 0.5,
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1E1E1E',
-    marginBottom: 6,
-  },
-  subheading: {
-    fontSize: 15,
-    color: '#6C7075',
-    marginBottom: 32,
-  },
-  inputGroup: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#3A3A3A',
-    marginBottom: 8,
-  },
+  root: { flex: 1, backgroundColor: '#F7F8FA' },
+  scroll: { padding: 28, paddingTop: 72, paddingBottom: 60 },
+  logoWrapper: { alignItems: 'center', marginBottom: 40 },
+  logoBox: { width: 46, height: 46, backgroundColor: '#1E1E1E', borderRadius: 8, marginBottom: 10 },
+  logoText: { fontSize: 20, color: '#1E1E1E', letterSpacing: 0.5 },
+  heading: { fontSize: 28, fontWeight: '800', color: '#1E1E1E', marginBottom: 6 },
+  subheading: { fontSize: 15, color: '#6C7075', marginBottom: 32 },
+  inputGroup: { marginBottom: 18 },
+  label: { fontSize: 13, fontWeight: '600', color: '#3A3A3A', marginBottom: 8 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,31 +143,12 @@ const styles = StyleSheet.create({
     borderColor: '#E8E8E8',
     paddingHorizontal: 14,
     height: 52,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    elevation: 1,
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: '#1E1E1E',
-  },
-  eyeBtn: {
-    padding: 4,
-  },
-  forgotRow: {
-    alignItems: 'flex-end',
-    marginBottom: 28,
-  },
-  forgotText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FF4B4B',
-  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15, color: '#1E1E1E' },
+  eyeBtn: { padding: 4 },
+  helperText: { fontSize: 13, color: '#6C7075', lineHeight: 20, marginBottom: 14 },
+  errorText: { color: '#D64545', fontSize: 13, marginBottom: 14 },
   primaryBtn: {
     backgroundColor: '#1E1E1E',
     borderRadius: 50,
@@ -209,73 +159,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  primaryBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.3,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 28,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E0E0',
-  },
-  dividerText: {
-    fontSize: 13,
-    color: '#A0A0A0',
-    fontWeight: '500',
-  },
-  googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 50,
-    paddingVertical: 15,
-    borderWidth: 1.5,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
-    marginBottom: 24,
-  },
-  googleLogoCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleG: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#4285F4',
-  },
-  googleBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E1E1E',
-  },
-  signupRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  signupPrompt: {
-    fontSize: 14,
-    color: '#6C7075',
-  },
-  signupLink: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E1E1E',
-  },
+  primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  signupRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  signupPrompt: { fontSize: 14, color: '#6C7075' },
+  signupLink: { fontSize: 14, fontWeight: '700', color: '#1E1E1E' },
 });

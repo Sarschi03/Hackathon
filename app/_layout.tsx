@@ -5,6 +5,7 @@ import 'react-native-reanimated';
 import { ActivityIndicator, View } from 'react-native';
 import { useConsent } from '@/hooks/use-consent';
 import ConsentScreen from '@/app/consent-screen';
+import { AppConvexProvider } from '@/components/convex-provider';
 
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -31,21 +32,23 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {/* Onboarding flow */}
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="onboarding-slides" options={{ headerShown: false }} />
+    <AppConvexProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          {/* Onboarding flow */}
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding-slides" options={{ headerShown: false }} />
 
-        {/* Auth */}
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="signup" options={{ headerShown: false }} />
+          {/* Auth */}
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="signup" options={{ headerShown: false }} />
 
-        {/* Main app */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+          {/* Main app */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </AppConvexProvider>
   );
 }

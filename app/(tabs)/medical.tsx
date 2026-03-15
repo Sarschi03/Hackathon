@@ -1,34 +1,71 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import React, { useEffect, useState } from 'react';
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { api } from '@/convex/_generated/api';
+import { useAppSession } from '@/hooks/use-app-session';
 
 export default function MedicalScreen() {
+  const { sessionToken, viewer } = useAppSession();
+  const profile = useQuery(
+    api.profiles.getMyProfile,
+    sessionToken ? { sessionToken } : 'skip',
+  );
+  const saveProfile = useMutation(api.profiles.upsertMyProfile);
   const [isEditing, setIsEditing] = useState(false);
-
-  const [profile, setProfile] = useState({
-    name: 'Jenny Doe',
-    age: '32',
-    bloodType: 'O+',
-    allergies: 'Penicillin, Peanuts, Latex',
-    history: 'Asthma (diagnosed 2012)\nAppendectomy (2018)',
-    medication: 'Albuterol inhaler (as needed)\nZyrtec 10mg (daily)',
+  const [form, setForm] = useState({
+    age: '',
+    bloodGroup: '',
+    allergiesText: '',
+    conditionsText: '',
+    medicationsText: '',
+    shareMedicalOnEmergency: true,
+    shareLiveLocationOnEmergency: true,
   });
 
-  const handleUpdate = (key: keyof typeof profile, value: string) => {
-    setProfile((prev) => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+    setForm({
+      age: profile.age ?? '',
+      bloodGroup: profile.bloodGroup ?? '',
+      allergiesText: profile.allergiesText ?? '',
+      conditionsText: profile.conditionsText ?? '',
+      medicationsText: profile.medicationsText ?? '',
+      shareMedicalOnEmergency: profile.shareMedicalOnEmergency,
+      shareLiveLocationOnEmergency: profile.shareLiveLocationOnEmergency,
+    });
+  }, [profile]);
+
+  const handleSave = async () => {
+    if (!sessionToken) {
+      return;
+    }
+    try {
+      await saveProfile({ sessionToken, ...form });
+      setIsEditing(false);
+    } catch (error) {
+      Alert.alert('Profile save failed', error instanceof Error ? error.message : 'Please try again.');
+    }
+  };
+
+  const handleUpdate = (key: keyof typeof form, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Light top navigation bar (matching home) */}
       <View style={styles.topNav}>
         <View style={styles.logoMark}>
           <View style={styles.logoBox} />
@@ -39,99 +76,94 @@ export default function MedicalScreen() {
         </View>
         <Text style={styles.navTitle}>Medical Profile</Text>
         <Pressable
-          onPress={() => setIsEditing(!isEditing)}
+          onPress={() => (isEditing ? void handleSave() : setIsEditing(true))}
           style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.75 }]}
         >
           <Text style={styles.editButtonText}>{isEditing ? 'Save' : 'Edit'}</Text>
         </Pressable>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Profile card with larger avatar overlapping */}
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
-          {/* Avatar centered, overlapping the top of the card */}
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
               <Ionicons name="person" size={80} color="#BDC3C7" />
             </View>
           </View>
 
-          {isEditing ? (
-            <TextInput
-              style={styles.nameInput}
-              value={profile.name}
-              onChangeText={(t) => handleUpdate('name', t)}
-            />
-          ) : (
-            <Text style={styles.name}>{profile.name}</Text>
-          )}
-          <Text style={styles.idNumber}>Health ID: 9482-12-XXX</Text>
+          <Text style={styles.name}>{viewer?.user?.fullName ?? 'FirstLine User'}</Text>
+          <Text style={styles.idNumber}>Convex-backed emergency medical summary</Text>
 
-          {/* Info bar: Age + Blood Group without black box */}
           <View style={styles.infoBar}>
             <View style={styles.infoItem}>
-              <View style={infoStyles.iconCircle}>
-                <Ionicons name="calendar-outline" size={16} color="#000" />
-              </View>
               <Text style={styles.infoLabel}>Age</Text>
               {isEditing ? (
                 <TextInput
                   style={styles.infoInput}
-                  value={profile.age}
+                  value={form.age}
                   onChangeText={(t) => handleUpdate('age', t)}
                   keyboardType="number-pad"
                 />
               ) : (
-                <Text style={styles.infoValue}>{profile.age}</Text>
+                <Text style={styles.infoValue}>{form.age || '-'}</Text>
               )}
             </View>
-
             <View style={styles.infoDivider} />
-
             <View style={styles.infoItem}>
-               <View style={infoStyles.iconCircle}>
-                <Ionicons name="water-outline" size={16} color="#000" />
-              </View>
               <Text style={styles.infoLabel}>Blood Group</Text>
               {isEditing ? (
                 <TextInput
                   style={styles.infoInput}
-                  value={profile.bloodType}
-                  onChangeText={(t) => handleUpdate('bloodType', t)}
+                  value={form.bloodGroup}
+                  onChangeText={(t) => handleUpdate('bloodGroup', t)}
                 />
               ) : (
-                <Text style={styles.infoValue}>{profile.bloodType}</Text>
+                <Text style={styles.infoValue}>{form.bloodGroup || '-'}</Text>
               )}
             </View>
           </View>
         </View>
 
-        {/* Info sections */}
-        <View style={styles.sections}>
-          <InfoCard
-            icon="medical"
-            title="Current Medication"
-            value={profile.medication}
-            editing={isEditing}
-            onChangeText={(t) => handleUpdate('medication', t)}
-          />
-          <InfoCard
-            icon="warning"
-            title="Known Allergies"
-            value={profile.allergies}
-            editing={isEditing}
-            onChangeText={(t) => handleUpdate('allergies', t)}
-          />
-          <InfoCard
-            icon="document-text"
-            title="Medical History"
-            value={profile.history}
-            editing={isEditing}
-            onChangeText={(t) => handleUpdate('history', t)}
-          />
+        <InfoCard
+          icon="medical"
+          title="Current Medication"
+          value={form.medicationsText}
+          editing={isEditing}
+          onChangeText={(t) => handleUpdate('medicationsText', t)}
+        />
+        <InfoCard
+          icon="warning"
+          title="Known Allergies"
+          value={form.allergiesText}
+          editing={isEditing}
+          onChangeText={(t) => handleUpdate('allergiesText', t)}
+        />
+        <InfoCard
+          icon="document-text"
+          title="Medical History"
+          value={form.conditionsText}
+          editing={isEditing}
+          onChangeText={(t) => handleUpdate('conditionsText', t)}
+        />
+
+        <View style={styles.privacyCard}>
+          <Text style={styles.privacyTitle}>Emergency sharing</Text>
+          <View style={styles.privacyRow}>
+            <Text style={styles.privacyLabel}>Share medical summary during incidents</Text>
+            <Switch
+              value={form.shareMedicalOnEmergency}
+              onValueChange={(value) => handleUpdate('shareMedicalOnEmergency', value)}
+              disabled={!isEditing}
+            />
+          </View>
+          <View style={styles.privacyRow}>
+            <Text style={styles.privacyLabel}>Share live location during incidents</Text>
+            <Switch
+              value={form.shareLiveLocationOnEmergency}
+              onValueChange={(value) => handleUpdate('shareLiveLocationOnEmergency', value)}
+              disabled={!isEditing}
+            />
+          </View>
         </View>
 
         <View style={{ height: 40 }} />
@@ -158,58 +190,20 @@ function InfoCard({ icon, title, value, editing, onChangeText }: InfoCardProps) 
         <Text style={infoStyles.title}>{title}</Text>
       </View>
       {editing ? (
-        <TextInput
-          style={infoStyles.input}
-          value={value}
-          onChangeText={onChangeText}
-          multiline
-        />
+        <TextInput style={infoStyles.input} value={value} onChangeText={onChangeText} multiline />
       ) : (
-        <Text style={infoStyles.value}>{value}</Text>
+        <Text style={infoStyles.value}>{value || 'No data added yet.'}</Text>
       )}
     </View>
   );
 }
 
 const infoStyles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 36, // matched home
-    padding: 24,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  value: {
-    fontSize: 15,
-    color: '#4A4A4A',
-    lineHeight: 23,
-    fontWeight: '400',
-  },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 36, padding: 24, marginBottom: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  iconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0, 0, 0, 0.03)', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  title: { fontSize: 18, fontWeight: '600', color: '#000' },
+  value: { fontSize: 15, color: '#4A4A4A', lineHeight: 23 },
   input: {
     fontSize: 15,
     color: '#1E1E1E',
@@ -225,158 +219,28 @@ const infoStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F2F2F6', // changed from darker gray to match home
-  },
-  /* ── Light top bar ── */
-  topNav: {
-    backgroundColor: '#F2F2F6', // changed to matching background
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 22,
-    paddingTop: 18,
-    paddingBottom: 18,
-  },
-  logoMark: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logoBox: {
-    width: 28,
-    height: 28,
-    backgroundColor: '#000', // black logo box
-    borderRadius: 5,
-  },
-  logoText: {
-    fontSize: 15,
-    color: '#000', // black text
-  },
-  navTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#000', // black text
-    letterSpacing: 0.3,
-  },
-  editButton: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  editButtonText: {
-    color: '#000', // black text
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  /* ── Content ── */
-  container: {
-    padding: 24,
-    paddingTop: 60, // added distance to make room for bigger avatar
-  },
-  /* ── Profile card ── */
-  profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 36, // matched home styles
-    paddingTop: 90,   // increased space for larger avatar overlap
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
-    shadowOffset: { width: 0, height: 8 },
-    position: 'relative',
-  },
-  avatarWrapper: {
-    position: 'absolute',
-    top: -75, // moved up to match larger size
-    alignSelf: 'center',
-  },
-  avatar: {
-    width: 150, // previously 110, made considerably bigger
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: '#F0F0F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 6, // thicker border
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 6,
-  },
-  name: {
-    fontSize: 28, // a bit bigger to match larger layout
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 4,
-    letterSpacing: -0.5,
-  },
-  nameInput: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#000',
-    marginBottom: 4,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#000',
-  },
-  idNumber: {
-    fontSize: 14,
-    color: '#8E8E93',
-    fontWeight: '500',
-    marginBottom: 24,
-  },
-  /* ── Info bar ── */
-  infoBar: {
-    flexDirection: 'row',
-    width: '100%',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)', // substitute for separate glass bar box
-  },
-  infoItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 6,
-  },
-  infoDivider: {
-    width: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    marginHorizontal: 16,
-    marginVertical: 4,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#8E8E93',
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#000',
-    letterSpacing: -0.5,
-  },
-  infoInput: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#000',
-    textAlign: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.2)',
-    minWidth: 40,
-  },
-  sections: {
-    marginTop: 6,
-  },
+  safeArea: { flex: 1, backgroundColor: '#F2F2F6' },
+  topNav: { backgroundColor: '#F2F2F6', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 18 },
+  logoMark: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logoBox: { width: 28, height: 28, backgroundColor: '#000', borderRadius: 5 },
+  logoText: { fontSize: 15, color: '#000' },
+  navTitle: { fontSize: 17, fontWeight: '700', color: '#000', letterSpacing: 0.3 },
+  editButton: { backgroundColor: 'rgba(0,0,0,0.05)', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)', paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20 },
+  editButtonText: { color: '#000', fontWeight: '600', fontSize: 13 },
+  container: { padding: 24, paddingTop: 60 },
+  profileCard: { backgroundColor: '#FFFFFF', borderRadius: 36, paddingTop: 90, paddingBottom: 24, paddingHorizontal: 24, alignItems: 'center', marginBottom: 20, position: 'relative' },
+  avatarWrapper: { position: 'absolute', top: -75, alignSelf: 'center' },
+  avatar: { width: 150, height: 150, borderRadius: 75, backgroundColor: '#F0F0F0', alignItems: 'center', justifyContent: 'center', borderWidth: 6, borderColor: '#FFFFFF' },
+  name: { fontSize: 28, fontWeight: '700', color: '#000', marginBottom: 4, letterSpacing: -0.5 },
+  idNumber: { fontSize: 14, color: '#8E8E93', fontWeight: '500', marginBottom: 24 },
+  infoBar: { flexDirection: 'row', width: '100%', paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
+  infoItem: { flex: 1, alignItems: 'center', gap: 6 },
+  infoDivider: { width: 1, backgroundColor: 'rgba(0,0,0,0.1)', marginHorizontal: 16, marginVertical: 4 },
+  infoLabel: { fontSize: 12, color: '#8E8E93', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  infoValue: { fontSize: 24, fontWeight: '600', color: '#000', letterSpacing: -0.5 },
+  infoInput: { fontSize: 24, fontWeight: '600', color: '#000', textAlign: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.2)', minWidth: 40 },
+  privacyCard: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 20 },
+  privacyTitle: { fontSize: 18, fontWeight: '700', color: '#111111', marginBottom: 12 },
+  privacyRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 10 },
+  privacyLabel: { flex: 1, fontSize: 14, lineHeight: 20, color: '#4B5563' },
 });

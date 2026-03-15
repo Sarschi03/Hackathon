@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "224960766162",
+    "project_id": "lifeline-377cb",
+    "storage_bucket": "lifeline-377cb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:224960766162:android:26cda04bafda48ea580d0b",
+        "android_client_info": {
+          "package_name": "com.galicius.hackathon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGmLG4wf8Iwe6po64FlpkT4DyTaQd3boU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

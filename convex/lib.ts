@@ -1,0 +1,53 @@
+export const ALERT_STAGE_TIMEOUT_MS = 20_000;
+export const INCIDENT_CONFIRMATION_WINDOW_MS = 10_000;
+export const LOCATION_FRESHNESS_MS = 15 * 60 * 1000;
+export const RESPONDER_PREFILTER_MAX_KM = 5;
+
+export const ETA_STAGES = [
+  { index: 0, stage: "eta_3m", maxEtaSeconds: 3 * 60 },
+  { index: 1, stage: "eta_6m", maxEtaSeconds: 6 * 60 },
+  { index: 2, stage: "eta_10m", maxEtaSeconds: 10 * 60 },
+] as const;
+
+export function getEtaStage(stageIndex: number) {
+  return ETA_STAGES[stageIndex] ?? null;
+}
+
+export function haversineDistanceMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+) {
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
+  const earthRadiusMeters = 6371e3;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusMeters * c;
+}
+
+export function fallbackWalkingEtaSeconds(distanceMeters: number) {
+  const averageWalkingSpeedMetersPerSecond = 1.4;
+  return Math.round(distanceMeters / averageWalkingSpeedMetersPerSecond);
+}
+
+export function makeEmergencySummary(profile: {
+  bloodGroup?: string | null;
+  allergiesText?: string | null;
+  conditionsText?: string | null;
+  medicationsText?: string | null;
+}) {
+  return {
+    bloodGroup: profile.bloodGroup ?? null,
+    allergies: profile.allergiesText ?? "",
+    conditions: profile.conditionsText ?? "",
+    medications: profile.medicationsText ?? "",
+  };
+}
