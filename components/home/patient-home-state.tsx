@@ -228,7 +228,7 @@ export function PatientHomeState({
                 <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : t('home_sos')}</Text>
                 {!hasActiveIncident && (
                   <Text style={styles.sosSubtext}>Hold to activate!</Text>
-                ) : null}
+                )}
               </>
             )}
           </View>
@@ -263,19 +263,19 @@ export function PatientHomeState({
       <View style={styles.vitalsGrid}>
         <VitalCard
           label={t('home_pulse')}
-          value={heartRate ?? "98"}
+          value={vitals.heartRate ?? "98"}
           unit="br/min"
           accentColor="#4BAEE8"
         />
         <VitalCard
           label={t('home_blood_oxygen')}
-          value={bloodOxygen ?? "98"}
+          value={vitals.bloodOxygen ?? "98"}
           unit="SpO2%"
           accentColor="#4BAEE8"
         />
         <VitalCard
           label={t('home_blood_pressure')}
-          value="118/70"
+          value={pressure ?? "118/70"}
           unit="mmHg"
           accentColor="#4BAEE8"
         />
