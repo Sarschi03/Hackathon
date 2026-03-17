@@ -78,7 +78,7 @@ export default function MedicalScreen() {
               onPress={() => router.push('/settings')}
               style={styles.cardIconButton}
             >
-              <Ionicons name="settings-outline" size={20} color="#666666" />
+              <Ionicons name="settings-outline" size={20} color="#1A1C22" />
             </Pressable>
             <Pressable
               onPress={() => (isEditing ? void handleSave() : setIsEditing(true))}
@@ -90,7 +90,7 @@ export default function MedicalScreen() {
 
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={80} color="#BDC3C7" />
+              <Ionicons name="person" size={80} color="#1A1C22" />
             </View>
           </View>
 
@@ -168,9 +168,7 @@ function InfoCard({ icon, title, value, editing, onChangeText }: InfoCardProps) 
     <View style={infoStyles.card}>
       <View style={infoStyles.cardContent}>
         <View style={infoStyles.header}>
-          <View style={infoStyles.iconCircle}>
-            <Ionicons name={icon} size={18} color="#A5A5A5" />
-          </View>
+          <Ionicons name={icon} size={20} color="#1A1C22" style={{ marginRight: 12 }} />
           <Text style={infoStyles.title}>{title}</Text>
         </View>
         {editing ? (
@@ -201,7 +199,7 @@ const infoStyles = StyleSheet.create({
     padding: 20,
   },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  iconCircle: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  iconCircle: { alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   title: { fontSize: 16, fontWeight: '600', color: '#1A1C22', fontFamily: 'InterSemiBold' },
   valueRow: {
     marginTop: 4,
