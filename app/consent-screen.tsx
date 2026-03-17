@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   link: {
-    color: '#7c6cf0',
+    color: '#ffffff',
     textDecorationLine: 'underline',
   },
   endSpacer: {
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   scrollHint: {
     fontSize: 12,
-    color: '#7c6cf0',
+    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -222,15 +222,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: '#7c6cf0',
+    backgroundColor: '#ffffff',
     alignItems: 'center',
   },
   acceptBtnDisabled: {
-    backgroundColor: '#3a3566',
+    backgroundColor: '#333333',
     opacity: 0.5,
   },
   acceptTxt: {
-    color: '#fff',
+    color: '#000000',
     fontSize: 15,
     fontWeight: '600',
   },

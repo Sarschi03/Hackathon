@@ -1,9 +1,13 @@
+import { api } from '@/convex/_generated/api';
+import { useAppSession } from '@/hooks/use-app-session';
+import { useLocalization } from '@/hooks/use-localization';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,9 +18,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { api } from '@/convex/_generated/api';
-import { useAppSession } from '@/hooks/use-app-session';
-import { useLocalization } from '@/hooks/use-localization';
 
 type Role = 'citizen' | 'responder';
 
@@ -49,7 +50,7 @@ export default function SignupScreen() {
     try {
       await signUp({
         sessionToken,
-        fullName: name || 'FirstLine User',
+        fullName: name || 'LifeLine User',
         email,
         password,
         role,
@@ -69,10 +70,14 @@ export default function SignupScreen() {
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.logoWrapper}>
-          <View style={styles.logoBox} />
+          <Image
+            source={require('../assets/images/icon_black.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.logoText}>
-            <Text style={{ fontWeight: '300' }}>First</Text>
-            <Text style={{ fontWeight: '700' }}>Line</Text>
+            <Text style={{ fontWeight: '300' }}>Life</Text>
+            <Text style={{ fontWeight: '500' }}>Line</Text>
           </Text>
         </View>
 
@@ -205,9 +210,22 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F2F3F5' },
   scroll: { padding: 28, paddingTop: 72, paddingBottom: 60 },
-  logoWrapper: { alignItems: 'center', marginBottom: 40 },
-  logoBox: { width: 46, height: 46, backgroundColor: '#1A1C22', borderRadius: 8, marginBottom: 10 },
-  logoText: { fontSize: 20, color: '#1A1C22', letterSpacing: 0.5, fontFamily: 'Inter' },
+  logoWrapper: {
+    alignItems: 'center',
+    marginBottom: 50,
+    marginTop: -50,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    marginBottom: -25,
+  },
+  logoText: {
+    fontSize: 18,
+    color: '#1A1C22',
+    letterSpacing: 0.5,
+    fontFamily: 'Inter',
+  },
   heading: { fontSize: 28, fontWeight: '800', color: '#1A1C22', marginBottom: 6, fontFamily: 'InterBold' },
   subheading: { fontSize: 15, color: '#64748B', marginBottom: 32, fontFamily: 'Inter' },
   inputGroup: { marginBottom: 18 },
@@ -232,7 +250,7 @@ const styles = StyleSheet.create({
   roleChipTextActive: { color: '#FFFFFF' },
   helperText: { fontSize: 12, lineHeight: 18, color: '#64748B', marginTop: 8, fontFamily: 'Inter' },
   errorText: { color: '#DC2626', fontSize: 13, marginBottom: 14, fontFamily: 'Inter' },
-  primaryBtn: { backgroundColor: '#1A1C22', borderRadius: 50, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  primaryBtn: { backgroundColor: '#1A1C22', borderRadius: 50, paddingVertical: 16, alignItems: 'center', marginTop: 40 },
   primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3, fontFamily: 'InterBold' },
   signupRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
   signupPrompt: { fontSize: 14, color: '#64748B', fontFamily: 'Inter' },

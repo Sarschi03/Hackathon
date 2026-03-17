@@ -1,16 +1,17 @@
+import type { DemoVitalsState } from "@/hooks/use-demo-vitals";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import Svg, { Line, Path } from "react-native-svg";
-import type { DemoVitalsState } from "@/hooks/use-demo-vitals";
 
 import { useLocalization } from "@/hooks/use-localization";
 
@@ -35,10 +36,14 @@ const ECG_STRIP_PATH = [
   "C 252 58, 266 58, 280 58",
 ].join(" ");
 
-function HeartIcon({ color = "#4BAEE8" }: { color?: string }) {
+function VitalIcon({ source }: { source: any }) {
   return (
-    <View style={[styles.heartIconWrapper, { backgroundColor: `${color}20` }]}>
-      <Text style={[styles.heartIconText, { color }]}>♥</Text>
+    <View style={styles.iconWrapper}>
+      <Image
+        source={source}
+        style={styles.vitalIcon}
+        resizeMode="contain"
+      />
     </View>
   );
 }
@@ -108,11 +113,13 @@ function VitalCard({
   value,
   unit,
   accentColor,
+  iconSource,
 }: {
   label: string;
   value: string | number;
   unit: string;
   accentColor: string;
+  iconSource: any;
 }) {
   const scaleAnim = useRef(new Animated.Value(0.96)).current;
 
@@ -127,11 +134,10 @@ function VitalCard({
 
   return (
     <Animated.View style={[styles.vitalCard, { transform: [{ scale: scaleAnim }] }]}>
-      <View style={[styles.vitalCardAccent, { backgroundColor: accentColor }]} />
       <View style={styles.vitalCardContent}>
         <View style={styles.vitalCardHeader}>
-          <HeartIcon color={accentColor} />
-          <Text style={[styles.vitalCardLabel, { color: accentColor }]}>{label}</Text>
+          <VitalIcon source={iconSource} />
+          <Text style={styles.vitalCardLabel}>{label}</Text>
         </View>
         <View style={styles.vitalCardValueRow}>
           <Text style={styles.vitalCardValue}>{value}</Text>
@@ -168,7 +174,9 @@ export function PatientHomeState({
   const { t } = useLocalization();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const sosScale = useRef(new Animated.Value(1)).current;
+  const pulse1 = useRef(new Animated.Value(1)).current;
+  const pulse2 = useRef(new Animated.Value(1)).current;
+  const pulse3 = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -184,23 +192,40 @@ export function PatientHomeState({
       }),
     ]).start();
 
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(sosScale, {
-          toValue: 1.015,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(sosScale, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    pulseLoop.start();
-    return () => pulseLoop.stop();
-  }, [fadeAnim, slideAnim, sosScale]);
+    const createPulse = (val: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, {
+            toValue: 1.04,
+            duration: 4500,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: true,
+          }),
+          Animated.timing(val, {
+            toValue: 1,
+            duration: 4500,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    };
+
+    const pulseAnim1 = createPulse(pulse1, 0);
+    const pulseAnim2 = createPulse(pulse2, 400);
+    const pulseAnim3 = createPulse(pulse3, 800);
+
+    pulseAnim1.start();
+    pulseAnim2.start();
+    pulseAnim3.start();
+
+    return () => {
+      pulseAnim1.stop();
+      pulseAnim2.stop();
+      pulseAnim3.stop();
+    };
+  }, [fadeAnim, slideAnim, pulse1, pulse2, pulse3]);
 
   const pressure = useMemo(
     () => `${vitals.systolic}/${vitals.diastolic}`,
@@ -209,31 +234,35 @@ export function PatientHomeState({
 
   return (
     <View style={styles.container}>
-      <Animated.View style={{ transform: [{ scale: sosScale }], marginBottom: 28 }}>
-        <Pressable
-          style={[styles.sosButton, hasActiveIncident && styles.sosButtonActive]}
-          onLongPress={onSosPress}
-          onPress={() => {
-            if (hasActiveIncident) {
-              onSosPress();
-            }
-          }}
-          disabled={isSubmitting}
-        >
-          <View>
-            {isSubmitting ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : t('home_sos')}</Text>
-                {!hasActiveIncident && (
-                  <Text style={styles.sosSubtext}>Hold to activate!</Text>
-                )}
-              </>
-            )}
-          </View>
-        </Pressable>
-      </Animated.View>
+      <View style={styles.sosContainer}>
+        <Animated.View style={[styles.sosRing, styles.sosRing3, { transform: [{ scale: pulse3 }] }]} />
+        <Animated.View style={[styles.sosRing, styles.sosRing2, { transform: [{ scale: pulse2 }] }]} />
+        <Animated.View style={[styles.sosRing, styles.sosRing1, { transform: [{ scale: pulse1 }] }]}>
+          <Pressable
+            style={[styles.sosButton, hasActiveIncident && styles.sosButtonActive]}
+            onLongPress={onSosPress}
+            onPress={() => {
+              if (hasActiveIncident) {
+                onSosPress();
+              }
+            }}
+            disabled={isSubmitting}
+          >
+            <View style={styles.sosContent}>
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" size="large" />
+              ) : (
+                <>
+                  <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : "SOS!"}</Text>
+                  {!hasActiveIncident ? (
+                    <Text style={styles.sosSubtext}>Deep press to activate!</Text>
+                  ) : null}
+                </>
+              )}
+            </View>
+          </Pressable>
+        </Animated.View>
+      </View>
 
       <Animated.View
         style={[
@@ -246,11 +275,10 @@ export function PatientHomeState({
       </Animated.View>
 
       <Animated.View style={[styles.ekgCard, { opacity: fadeAnim }]}>
-        <View style={[styles.ekgCardAccent, { backgroundColor: "#F5C09D" }]} />
         <View style={styles.ekgCardHeader}>
           <View style={styles.ekgCardLabelRow}>
-            <HeartIcon color="#4BAEE8" />
-            <Text style={styles.ekgCardLabel}>EKG</Text>
+            <VitalIcon source={require("../../assets/images/icon.png")} />
+            <Text style={styles.ekgCardLabel}>{t('home_ekg')}</Text>
           </View>
           <View style={styles.liveRow}>
             <View style={styles.liveDot} />
@@ -263,27 +291,31 @@ export function PatientHomeState({
       <View style={styles.vitalsGrid}>
         <VitalCard
           label={t('home_pulse')}
-          value={vitals.heartRate ?? "98"}
-          unit="br/min"
-          accentColor="#4BAEE8"
+          value={vitals.heartRate?.toString() ?? "98"}
+          unit="bpm"
+          accentColor="#a5a5a5ff"
+          iconSource={require("../../assets/images/icon.png")}
         />
         <VitalCard
           label={t('home_blood_oxygen')}
-          value={vitals.bloodOxygen ?? "98"}
+          value={vitals.bloodOxygen?.toString() ?? "98"}
           unit="SpO2%"
-          accentColor="#4BAEE8"
+          accentColor="#a5a5a5ff"
+          iconSource={require("../../assets/images/icon_blood.png")}
         />
         <VitalCard
           label={t('home_blood_pressure')}
           value={pressure ?? "118/70"}
           unit="mmHg"
-          accentColor="#4BAEE8"
+          accentColor="#a5a5a5ff"
+          iconSource={require("../../assets/images/icon_pressure.png")}
         />
         <VitalCard
           label={t('home_respiratory')}
-          value="16"
-          unit="br/min"
-          accentColor="#4BAEE8"
+          value={vitals.respiratoryRate?.toString() ?? "16"}
+          unit="bpm"
+          accentColor="#a5a5a5ff"
+          iconSource={require("../../assets/images/icon_blood.png")}
         />
       </View>
     </View>
@@ -292,36 +324,65 @@ export function PatientHomeState({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 10,
+    paddingVertical: 0,
+  },
+  sosContainer: {
+    height: 340,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    position: "relative",
+  },
+  sosRing: {
+    position: "absolute",
+    borderRadius: 999,
+  },
+  sosRing3: {
+    width: 300,
+    height: 300,
+    backgroundColor: "rgba(255, 107, 129, 0.05)",
+  },
+  sosRing2: {
+    width: 260,
+    height: 260,
+    backgroundColor: "rgba(255, 107, 129, 0.12)",
+  },
+  sosRing1: {
+    width: 210,
+    height: 210,
+    zIndex: 10,
   },
   sosButton: {
-    borderRadius: 22,
-    backgroundColor: "#F4A8A8",
-    paddingVertical: 28,
-    paddingHorizontal: 20,
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    backgroundColor: "#FF6B81",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#E07070",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 6,
-    marginBottom: 15,
+    shadowColor: "#FF6B81",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   sosButtonActive: {
     backgroundColor: "#DC2626",
+    shadowColor: "#DC2626",
+  },
+  sosContent: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   sosText: {
-    fontSize: 42,
+    fontSize: 48,
     fontWeight: "400",
     color: "#FFFFFF",
-    letterSpacing: 2,
     fontFamily: "Inter",
   },
   sosSubtext: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.9)",
-    marginTop: 2,
+    color: "rgba(241, 241, 241, 0.9)",
+    marginTop: 4,
     fontWeight: "400",
     fontFamily: "Inter",
   },
@@ -344,21 +405,15 @@ const styles = StyleSheet.create({
   },
   ekgCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 24,
+    marginBottom: 16,
     overflow: "hidden",
-    shadowColor: "#676767ff",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
     height: 180,
-  },
-  ekgCardAccent: {
-    height: 4,
-    width: "100%",
-    alignContent: "center",
-    alignSelf: "center",
-    borderRadius: 10,
   },
   ekgCardHeader: {
     flexDirection: "row",
@@ -374,11 +429,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ekgCardLabel: {
-    fontSize: 14,
-    color: "#4BAEE8",
-    fontWeight: "400",
-    marginLeft: 10,
-    fontFamily: "Inter",
+    fontSize: 13,
+    color: "#666666",
+    fontWeight: "500",
+    marginLeft: 4,
+    fontFamily: "InterMedium",
   },
   liveRow: {
     flexDirection: "row",
@@ -389,7 +444,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: "#4BAEE8",
+    backgroundColor: "#a5a5a5ff",
   },
   liveText: {
     fontSize: 12,
@@ -432,21 +487,19 @@ const styles = StyleSheet.create({
   vitalsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    justifyContent: "space-between",
+    gap: 12,
   },
   vitalCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 5,
-    width: (width - 40 - 8) / 2,
+    borderRadius: 24,
+    width: "48%",
     overflow: "hidden",
-    shadowColor: "#878787ff",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 2,
-  },
-  vitalCardAccent: {
-    height: 4,
-    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   vitalCardContent: {
     padding: 18,
@@ -460,9 +513,10 @@ const styles = StyleSheet.create({
   },
   vitalCardLabel: {
     fontSize: 13,
-    fontWeight: "400",
+    color: "#666666",
+    fontWeight: "500",
     marginLeft: 4,
-    fontFamily: "Inter",
+    fontFamily: "InterMedium",
   },
   vitalCardValueRow: {
     flexDirection: "row",
@@ -475,7 +529,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1A1C22",
     lineHeight: 36,
-    fontFamily: "Inter",
+    fontFamily: "InterBold",
   },
   vitalCardUnit: {
     fontSize: 13,
@@ -493,15 +547,14 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 2,
   },
-  heartIconWrapper: {
+  iconWrapper: {
     width: 27,
     height: 27,
-    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
   },
-  heartIconText: {
-    fontSize: 15,
-    fontFamily: "Inter",
+  vitalIcon: {
+    width: 24,
+    height: 24,
   },
 });
