@@ -51,6 +51,7 @@ async function resolveSessionToken() {
 export function AppSessionProvider({ children }: { children: React.ReactNode }) {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [sessionVersion, setSessionVersion] = useState(0);
   const initializedRef = useRef(false);
   const bootstrap = useMutation(api.session.bootstrap);
   const viewer = useQuery(
@@ -59,21 +60,30 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
   );
 
   useEffect(() => {
-    if (initializedRef.current) {
-      return;
-    }
     initializedRef.current = true;
     let active = true;
 
     async function ensureSession() {
-      const nextToken = await resolveSessionToken();
-      if (!active) {
-        return;
-      }
-      setSessionToken(nextToken);
-      await bootstrap({ sessionToken: nextToken });
-      if (active) {
-        setIsReady(true);
+      try {
+        const nextToken = await resolveSessionToken();
+        if (!active) {
+          return;
+        }
+        setSessionToken(nextToken);
+        await bootstrap({ sessionToken: nextToken });
+        if (active) {
+          setIsReady(true);
+        }
+      } catch (err) {
+        console.error("[EnsureSession] Error bootstrapping session:", err);
+        if (active) {
+          // Retry after a short delay if it failed
+          setTimeout(() => {
+            if (active) {
+              setSessionVersion((v) => v + 1);
+            }
+          }, 3000);
+        }
       }
     }
 
@@ -81,8 +91,9 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
 
     return () => {
       active = false;
+      initializedRef.current = false;
     };
-  }, [bootstrap]);
+  }, [bootstrap, sessionVersion]);
 
   useEffect(() => {
     if (!sessionToken || viewer === undefined) {
@@ -102,15 +113,14 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
   }, [sessionToken, viewer]);
 
   const logout = async () => {
+    setIsReady(false);
+    setSessionToken(null);
     await Promise.all([
       AsyncStorage.removeItem(AUTH_SESSION_STORAGE_KEY),
       AsyncStorage.removeItem(DEVICE_SESSION_STORAGE_KEY),
       AsyncStorage.removeItem(SESSION_POOL_STORAGE_KEY),
     ]);
-    setSessionToken(null);
-    setIsReady(false);
-    initializedRef.current = false;
-    // The useEffect will trigger and re-resolve a new guest session
+    setSessionVersion((v) => v + 1);
   };
 
   const value = useMemo(

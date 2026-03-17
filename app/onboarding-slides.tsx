@@ -26,16 +26,19 @@ export default function OnboardingSlides() {
       key: '1',
       title: t('onboarding_1_title'),
       desc: t('onboarding_1_desc'),
+      image: require('../assets/images/mockup1.1.png'),
     },
     {
       key: '2',
       title: t('onboarding_2_title'),
       desc: t('onboarding_2_desc'),
+      image: require('../assets/images/mockup_2.png'),
     },
     {
       key: '3',
       title: t('onboarding_3_title'),
       desc: t('onboarding_3_desc'),
+      image: require('../assets/images/mockup_3.png'),
     },
   ];
 
@@ -82,9 +85,22 @@ export default function OnboardingSlides() {
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => (
           <View style={styles.slide}>
-            {/* Image placeholder */}
+            {/* Image or placeholder */}
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="image-outline" size={48} color="#C0C0C0" />
+              {item.image ? (
+                <Image
+                  source={item.image}
+                  style={[
+                    styles.mockupImage,
+                    item.key === '3' && { transform: [{ translateX: -40 }] }
+                  ]}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={styles.placeholderBox}>
+                  <Ionicons name="image-outline" size={48} color="#C0C0C0" />
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -138,12 +154,12 @@ const styles = StyleSheet.create({
   },
   logoWrapper: {
     alignItems: 'center',
-    marginTop: 64,
-    marginBottom: 24,
+    marginTop: 40,
+    marginBottom: -70,
   },
   logoImage: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     marginBottom: -25,
   },
   logoText: {
@@ -158,6 +174,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   imagePlaceholder: {
+    width: width,
+    height: width * 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mockupImage: {
+    width: width * 1.1,
+    height: width * 1.5,
+  },
+  placeholderBox: {
     width: width - 80,
     height: (width - 80) * 1.15,
     backgroundColor: '#D9D9D9',
@@ -167,8 +193,9 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     flexDirection: 'row',
-    marginTop: 24,
+    marginTop: -120,
     gap: 10,
+    zIndex: 10,
   },
   dot: {
     width: 10,
@@ -182,14 +209,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#D0D0D0',
   },
   desc: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#4A4A4A',
     lineHeight: 24,
     textAlign: 'center',
-    marginTop: 28,
+    marginTop: 15,
     marginHorizontal: 40,
     flex: 1,
     fontFamily: 'Inter',
+    zIndex: 10,
   },
   buttonRow: {
     flexDirection: 'row',
