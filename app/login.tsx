@@ -16,9 +16,11 @@ import {
 } from 'react-native';
 import { api } from '@/convex/_generated/api';
 import { useAppSession } from '@/hooks/use-app-session';
+import { useLocalization } from '@/hooks/use-localization';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useLocalization();
   const { sessionToken, isReady } = useAppSession();
   const signIn = useMutation(api.session.signIn);
   const [email, setEmail] = useState('');
@@ -57,11 +59,11 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        <Text style={styles.heading}>Welcome back</Text>
-        <Text style={styles.subheading}>Sign in as a patient or responder with your Convex-backed account</Text>
+        <Text style={styles.heading}>{t('login_title')}</Text>
+        <Text style={styles.subheading}>{t('login_subtitle')}</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('login_email')}</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="mail-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
@@ -77,12 +79,12 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('login_password')}</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="lock-closed-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder={t('login_password')}
               placeholderTextColor="#B0B3B8"
               secureTextEntry={!showPassword}
               value={password}
@@ -109,14 +111,14 @@ export default function LoginScreen() {
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.primaryBtnText}>{isReady ? 'Sign In' : 'Preparing session...'}</Text>
+            <Text style={styles.primaryBtnText}>{isReady ? t('btn_login') : 'Preparing session...'}</Text>
           )}
         </Pressable>
 
         <View style={styles.signupRow}>
-          <Text style={styles.signupPrompt}>Do not have an account? </Text>
+          <Text style={styles.signupPrompt}>{t('login_no_account')} </Text>
           <TouchableOpacity onPress={() => router.push('/signup')}>
-            <Text style={styles.signupLink}>Sign Up</Text>
+            <Text style={styles.signupLink}>{t('btn_signup')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -125,42 +127,42 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F7F8FA' },
+  root: { flex: 1, backgroundColor: '#F2F3F5' },
   scroll: { padding: 28, paddingTop: 72, paddingBottom: 60 },
   logoWrapper: { alignItems: 'center', marginBottom: 40 },
-  logoBox: { width: 46, height: 46, backgroundColor: '#1E1E1E', borderRadius: 8, marginBottom: 10 },
-  logoText: { fontSize: 20, color: '#1E1E1E', letterSpacing: 0.5 },
-  heading: { fontSize: 28, fontWeight: '800', color: '#1E1E1E', marginBottom: 6 },
-  subheading: { fontSize: 15, color: '#6C7075', marginBottom: 32 },
+  logoBox: { width: 46, height: 46, backgroundColor: '#1A1C22', borderRadius: 8, marginBottom: 10 },
+  logoText: { fontSize: 20, color: '#1A1C22', letterSpacing: 0.5, fontFamily: 'Inter' },
+  heading: { fontSize: 28, fontWeight: '800', color: '#1A1C22', marginBottom: 6, fontFamily: 'InterBold' },
+  subheading: { fontSize: 15, color: '#64748B', marginBottom: 32, fontFamily: 'Inter' },
   inputGroup: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '600', color: '#3A3A3A', marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '600', color: '#1A1C22', marginBottom: 8, fontFamily: 'InterSemiBold' },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E8E8E8',
+    borderColor: '#E2E8F0',
     paddingHorizontal: 14,
     height: 52,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: 15, color: '#1E1E1E' },
+  input: { flex: 1, fontSize: 15, color: '#1A1C22', fontFamily: 'Inter' },
   eyeBtn: { padding: 4 },
-  helperText: { fontSize: 13, color: '#6C7075', lineHeight: 20, marginBottom: 14 },
-  errorText: { color: '#D64545', fontSize: 13, marginBottom: 14 },
+  helperText: { fontSize: 13, color: '#64748B', lineHeight: 20, marginBottom: 14, fontFamily: 'Inter' },
+  errorText: { color: '#DC2626', fontSize: 13, marginBottom: 14, fontFamily: 'Inter' },
   primaryBtn: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#1A1C22',
     borderRadius: 50,
     paddingVertical: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
   },
-  primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3, fontFamily: 'InterBold' },
   signupRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  signupPrompt: { fontSize: 14, color: '#6C7075' },
-  signupLink: { fontSize: 14, fontWeight: '700', color: '#1E1E1E' },
+  signupPrompt: { fontSize: 14, color: '#64748B', fontFamily: 'Inter' },
+  signupLink: { fontSize: 14, fontWeight: '700', color: '#1A1C22', fontFamily: 'InterBold' },
 });

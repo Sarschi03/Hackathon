@@ -9,6 +9,8 @@ import {
   View,
 } from "react-native";
 
+import { useLocalization } from "@/hooks/use-localization";
+
 const { width } = Dimensions.get("window");
 
 // --- EKG Line (View-based approximation as per user snippet) ---
@@ -110,6 +112,7 @@ export function PatientHomeState({
   isSubmitting,
   onSosPress,
 }: PatientHomeStateProps) {
+  const { t } = useLocalization();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const sosScale = useRef(new Animated.Value(1)).current;
@@ -164,7 +167,7 @@ export function PatientHomeState({
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : "SOS!"}</Text>
+                <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : t('home_sos')}</Text>
                 {!hasActiveIncident && (
                   <Text style={styles.sosSubtext}>Hold to activate!</Text>
                 )}
@@ -182,7 +185,7 @@ export function PatientHomeState({
         ]}
       >
         <Text style={styles.greetingName}>{firstName},</Text>
-        <Text style={styles.greetingTitle}>Check{"\n"}your Vitals!</Text>
+        <Text style={styles.greetingTitle}>{t('home_emergency_help')}</Text>
       </Animated.View>
 
       {/* EKG Card */}
@@ -204,25 +207,25 @@ export function PatientHomeState({
       {/* Vitals Grid */}
       <View style={styles.vitalsGrid}>
         <VitalCard
-          label="Pulse"
+          label={t('home_pulse')}
           value={heartRate ?? "98"}
           unit="br/min"
           accentColor="#4BAEE8"
         />
         <VitalCard
-          label="Blood oxygen"
+          label={t('home_blood_oxygen')}
           value={bloodOxygen ?? "98"}
           unit="SpO2%"
           accentColor="#4BAEE8"
         />
         <VitalCard
-          label="Blood Pressure"
+          label={t('home_blood_pressure')}
           value="118/70"
           unit="mmHg"
           accentColor="#4BAEE8"
         />
         <VitalCard
-          label="Respiratory rate"
+          label={t('home_respiratory')}
           value="16"
           unit="br/min"
           accentColor="#4BAEE8"

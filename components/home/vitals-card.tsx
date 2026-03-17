@@ -3,9 +3,11 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { useLocalization } from "@/hooks/use-localization";
 
 /** Pulsing dot - indicator for live data */
 const LiveIndicator = () => {
+  const { t } = useLocalization();
   const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const anim = Animated.loop(
@@ -21,7 +23,7 @@ const LiveIndicator = () => {
   return (
     <View style={styles.liveWrapper}>
       <Animated.View style={[styles.liveDot, { opacity }]} />
-      <Text style={styles.liveText}>Live</Text>
+      <Text style={styles.liveText}>{t('home_live')}</Text>
     </View>
   );
 };
@@ -46,6 +48,7 @@ const EkgGraph = () => (
 );
 
 export function VitalsCard() {
+  const { t } = useLocalization();
   const { heartRate, bloodOxygen, isAvailable, isLoading, lastUpdated } = useHealthConnect();
 
   const hrValue = heartRate != null ? heartRate : 98; // Fallback to 98 if no data yet (mockup use case)
@@ -58,7 +61,7 @@ export function VitalsCard() {
         <View style={styles.cardHeader}>
           <View style={styles.titleRow}>
             <HeartBox color="#4FACFE" />
-            <Text style={styles.cardTitle}>EKG</Text>
+            <Text style={styles.cardTitle}>{t('home_ekg')}</Text>
           </View>
           {isAvailable && <LiveIndicator />}
         </View>
@@ -74,11 +77,11 @@ export function VitalsCard() {
         <View style={styles.smallCard}>
           <View style={styles.cardHeaderSmall}>
             <HeartBox color="#4FACFE" />
-            <Text style={styles.cardTitleSmall}>Pulse</Text>
+            <Text style={styles.cardTitleSmall}>{t('home_pulse')}</Text>
           </View>
           <View style={styles.valueRow}>
             <Text style={styles.mainValue}>{hrValue}</Text>
-            <Text style={styles.unit}>br/min</Text>
+            <Text style={styles.unit}>{t('home_bpm')}</Text>
           </View>
           <View style={[styles.footerBar, { backgroundColor: "#FFB067" }]} />
         </View>
@@ -87,7 +90,7 @@ export function VitalsCard() {
         <View style={styles.smallCard}>
           <View style={styles.cardHeaderSmall}>
             <HeartBox color="#4FACFE" />
-            <Text style={styles.cardTitleSmall}>Blood oxygen</Text>
+            <Text style={styles.cardTitleSmall}>{t('home_blood_oxygen')}</Text>
           </View>
           <View style={styles.valueRow}>
             <Text style={styles.mainValue}>{spo2Value}</Text>
@@ -100,7 +103,7 @@ export function VitalsCard() {
         <View style={styles.smallCard}>
           <View style={styles.cardHeaderSmall}>
             <HeartBox color="#4FACFE" />
-            <Text style={styles.cardTitleSmall}>Blood Pressure</Text>
+            <Text style={styles.cardTitleSmall}>{t('home_blood_pressure')}</Text>
           </View>
           <View style={styles.valueRow}>
             <Text style={styles.mainValue}>118/70</Text>
@@ -113,11 +116,11 @@ export function VitalsCard() {
         <View style={styles.smallCard}>
           <View style={styles.cardHeaderSmall}>
             <HeartBox color="#4FACFE" />
-            <Text style={styles.cardTitleSmall}>Raspitory rate</Text>
+            <Text style={styles.cardTitleSmall}>{t('home_respiratory')}</Text>
           </View>
           <View style={styles.valueRow}>
             <Text style={styles.mainValue}>16</Text>
-            <Text style={styles.unit}>br/min</Text>
+            <Text style={styles.unit}>{t('home_bpm')}</Text>
           </View>
           <View style={[styles.footerBar, { backgroundColor: "#4FACFE" }]} />
         </View>
