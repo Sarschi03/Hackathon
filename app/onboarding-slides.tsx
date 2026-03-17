@@ -1,16 +1,17 @@
+import { useLocalization } from '@/hooks/use-localization';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
+  Image,
   ImageBackground,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useLocalization } from '@/hooks/use-localization';
 
 const { width } = Dimensions.get('window');
 
@@ -54,15 +55,19 @@ export default function OnboardingSlides() {
         source={require('../assets/images/map.png')}
         style={styles.mapBg}
         resizeMode="cover"
-        imageStyle={{ opacity: 0.15 }}
+        imageStyle={{ opacity: 0.25 }}
       />
 
       {/* Logo */}
       <View style={styles.logoWrapper}>
-        <View style={styles.logoBox} />
+        <Image
+          source={require('../assets/images/icon_black.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.logoText}>
-          <Text style={{ fontWeight: '300' }}>First</Text>
-          <Text style={{ fontWeight: '700' }}>Line</Text>
+          <Text style={{ fontWeight: '300' }}>Life</Text>
+          <Text style={{ fontWeight: '500' }}>Line</Text>
         </Text>
       </View>
 
@@ -136,12 +141,10 @@ const styles = StyleSheet.create({
     marginTop: 64,
     marginBottom: 24,
   },
-  logoBox: {
-    width: 42,
-    height: 42,
-    backgroundColor: '#D0D0D0',
-    borderRadius: 6,
-    marginBottom: 8,
+  logoImage: {
+    width: 100,
+    height: 100,
+    marginBottom: -25,
   },
   logoText: {
     fontSize: 18,
@@ -200,12 +203,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 50,
-    backgroundColor: '#ECECEC',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
   },
   skipText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#555555',
+    color: '#333333',
     fontFamily: 'InterMedium',
   },
   continueBtn: {

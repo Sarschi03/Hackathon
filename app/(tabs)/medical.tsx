@@ -78,7 +78,7 @@ export default function MedicalScreen() {
               onPress={() => router.push('/settings')}
               style={styles.cardIconButton}
             >
-              <Ionicons name="settings-outline" size={20} color="#4B5563" />
+              <Ionicons name="settings-outline" size={20} color="#666666" />
             </Pressable>
             <Pressable
               onPress={() => (isEditing ? void handleSave() : setIsEditing(true))}
@@ -166,27 +166,47 @@ type InfoCardProps = {
 function InfoCard({ icon, title, value, editing, onChangeText }: InfoCardProps) {
   return (
     <View style={infoStyles.card}>
-      <View style={infoStyles.header}>
-        <View style={infoStyles.iconCircle}>
-          <Ionicons name={icon} size={18} color="#4BAEE8" />
+      <View style={infoStyles.cardContent}>
+        <View style={infoStyles.header}>
+          <View style={infoStyles.iconCircle}>
+            <Ionicons name={icon} size={18} color="#A5A5A5" />
+          </View>
+          <Text style={infoStyles.title}>{title}</Text>
         </View>
-        <Text style={infoStyles.title}>{title}</Text>
+        {editing ? (
+          <TextInput style={infoStyles.input} value={value} onChangeText={onChangeText} multiline />
+        ) : (
+          <Text style={infoStyles.valueRow}>
+            <Text style={infoStyles.value}>{value || 'No data added yet.'}</Text>
+          </Text>
+        )}
       </View>
-      {editing ? (
-        <TextInput style={infoStyles.input} value={value} onChangeText={onChangeText} multiline />
-      ) : (
-        <Text style={infoStyles.value}>{value || 'No data added yet.'}</Text>
-      )}
     </View>
   );
 }
 
 const infoStyles = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: 10, padding: 20, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 1 },
+  card: { 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 24, 
+    marginBottom: 16, 
+    overflow: 'hidden',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 8 }, 
+    shadowOpacity: 0.05, 
+    shadowRadius: 16, 
+    elevation: 3 
+  },
+  cardContent: {
+    padding: 20,
+  },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  iconCircle: { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(75, 174, 232, 0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  iconCircle: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   title: { fontSize: 16, fontWeight: '600', color: '#1A1C22', fontFamily: 'InterSemiBold' },
-  value: { fontSize: 14, color: '#4B5563', lineHeight: 22, fontFamily: 'Inter' },
+  valueRow: {
+    marginTop: 4,
+  },
+  value: { fontSize: 14, color: '#666666', lineHeight: 22, fontFamily: 'Inter' },
   input: {
     fontSize: 14,
     color: '#1E1E1E',
@@ -204,20 +224,21 @@ const infoStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F2F3F5' },
-  container: { padding: 20, paddingTop: 20 },
+  container: { padding: 20, paddingTop: 50 },
   profileCard: { 
     backgroundColor: '#FFFFFF', 
-    borderRadius: 12, 
+    borderRadius: 24, 
     paddingTop: 50, 
     paddingBottom: 24, 
     paddingHorizontal: 24, 
     alignItems: 'center', 
     marginBottom: 16, 
+    overflow: 'hidden',
     shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
+    shadowOffset: { width: 0, height: 8 }, 
     shadowOpacity: 0.05, 
-    shadowRadius: 8, 
-    elevation: 1,
+    shadowRadius: 16, 
+    elevation: 3,
     position: 'relative',
   },
   cardHeader: {
@@ -229,9 +250,9 @@ const styles = StyleSheet.create({
   cardIconButton: {
     padding: 8,
     backgroundColor: '#F9FAFB',
-    borderRadius: 20,
-    minHeight: 36,
-    minWidth: 36,
+    borderRadius: 24,
+    minHeight: 48,
+    minWidth: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
