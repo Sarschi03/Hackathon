@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   Easing,
   Image,
   Pressable,
@@ -14,8 +13,6 @@ import {
 import Svg, { Line, Path } from "react-native-svg";
 
 import { useLocalization } from "@/hooks/use-localization";
-
-const { width } = Dimensions.get("window");
 
 const ECG_STRIP_PATH = [
   "M 0 58",

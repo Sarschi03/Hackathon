@@ -57,10 +57,10 @@ export default function SettingsScreen() {
 
   const languageMap: Record<Locale, string> = {
     en: 'English',
-    es: 'Español',
-    fr: 'Français',
+    es: 'Espanol',
+    fr: 'Francais',
     de: 'Deutsch',
-    sl: 'Slovenščina',
+    sl: 'Slovenscina',
     it: 'Italiano',
   };
 
@@ -70,7 +70,7 @@ export default function SettingsScreen() {
     if (!sessionToken) return;
     try {
       await saveProfile({ sessionToken, ...newForm });
-    } catch (e) {
+    } catch {
       Alert.alert('Update failed', 'Could not sync settings.');
     }
   };
@@ -91,11 +91,13 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.textColumn}>
               <Text style={styles.label}>{t('settings_share_medical')}</Text>
-              <Text style={styles.sublabel}>{t('settings_share_medical')}</Text>
+              <Text style={styles.sublabel}>
+                Share allergies, medications, and conditions during an incident.
+              </Text>
             </View>
             <Switch
               value={form.shareMedicalOnEmergency}
-              onValueChange={(v) => handleUpdate('shareMedicalOnEmergency', v)}
+              onValueChange={(value) => handleUpdate('shareMedicalOnEmergency', value)}
               trackColor={{ false: '#D1D5DB', true: '#4BAEE8' }}
             />
           </View>
@@ -105,11 +107,13 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.textColumn}>
               <Text style={styles.label}>{t('settings_share_location')}</Text>
-              <Text style={styles.sublabel}>{t('settings_share_location')}</Text>
+              <Text style={styles.sublabel}>
+                Keep responders synced with your live location while help is on the way.
+              </Text>
             </View>
             <Switch
               value={form.shareLiveLocationOnEmergency}
-              onValueChange={(v) => handleUpdate('shareLiveLocationOnEmergency', v)}
+              onValueChange={(value) => handleUpdate('shareLiveLocationOnEmergency', value)}
               trackColor={{ false: '#D1D5DB', true: '#4BAEE8' }}
             />
           </View>
@@ -127,11 +131,10 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.versionText}>FirstLine v1.0.4</Text>
+          <Text style={styles.versionText}>LifeLine v1.0.4</Text>
         </View>
       </ScrollView>
 
-      {/* Language Modal */}
       <Modal visible={langModalVisible} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setLangModalVisible(false)}>
           <View style={styles.dropdownMenu}>
@@ -144,7 +147,12 @@ export default function SettingsScreen() {
                   setLangModalVisible(false);
                 }}
               >
-                <Text style={[styles.dropdownItemText, locale === key && { color: '#4BAEE8', fontWeight: '700' }]}>
+                <Text
+                  style={[
+                    styles.dropdownItemText,
+                    locale === key && { color: '#4BAEE8', fontWeight: '700' },
+                  ]}
+                >
                   {languageMap[key]}
                 </Text>
               </Pressable>
@@ -228,6 +236,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     fontFamily: 'Inter',
+    lineHeight: 19,
   },
   divider: {
     height: 1,

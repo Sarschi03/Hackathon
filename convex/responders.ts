@@ -284,7 +284,7 @@ export const getMyActiveAssignment = query({
     sessionToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const { user } = await requireResponder(ctx.db, args.sessionToken);
+    const { user, responderProfile } = await requireResponder(ctx.db, args.sessionToken);
     const assignments = await ctx.db
       .query("incidentAssignments")
       .withIndex("by_responderUserId", (q: any) => q.eq("responderUserId", user._id))
@@ -309,6 +309,8 @@ export const getMyActiveAssignment = query({
         ...activeAssignment,
         displayStatus: formatAssignmentStatus(activeAssignment.status),
         etaLabel: formatEtaMinutes(activeAssignment.etaSeconds),
+        travelMode: responderProfile.preferredTravelMode,
+        travelModeLabel: formatTravelMode(responderProfile.preferredTravelMode),
       },
       incident,
       patientName: emergency.patientName,
