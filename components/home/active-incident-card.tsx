@@ -19,11 +19,25 @@ export function ActiveIncidentCard({
       {incidentState.escalationLabel ? (
         <Text style={styles.meta}>Search stage: {incidentState.escalationLabel}</Text>
       ) : null}
+      {incidentState.medicalSummary ? (
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryTitle}>Shared emergency data</Text>
+          <Text style={styles.summaryLine}>
+            Blood group: {incidentState.medicalSummary.bloodGroup || "Unknown"}
+          </Text>
+          <Text style={styles.summaryLine}>
+            Allergies: {incidentState.medicalSummary.allergies || "None listed"}
+          </Text>
+          <Text style={styles.summaryLine}>
+            Conditions: {incidentState.medicalSummary.conditions || "None listed"}
+          </Text>
+        </View>
+      ) : null}
       {incidentState.assignment ? (
         <View style={styles.assignmentBox}>
           <Text style={styles.assignmentTitle}>Assigned responder</Text>
           <Text style={styles.assignmentBody}>
-            {incidentState.assignment.responderName} • {incidentState.assignment.displayStatus}
+            {incidentState.assignment.responderName} | {incidentState.assignment.displayStatus}
           </Text>
           <Text style={styles.assignmentMeta}>{incidentState.assignment.etaLabel}</Text>
         </View>
@@ -32,6 +46,16 @@ export function ActiveIncidentCard({
           {incidentState.timeline.at(-1)?.message ?? "Waiting for escalation events."}
         </Text>
       )}
+      {incidentState.timeline?.length ? (
+        <View style={styles.timelineBox}>
+          <Text style={styles.timelineTitle}>Timeline</Text>
+          {incidentState.timeline.slice(-3).map((event: any) => (
+            <Text key={event._id} style={styles.timelineLine}>
+              {event.message}
+            </Text>
+          ))}
+        </View>
+      ) : null}
       <Pressable style={styles.cancelButton} onPress={onCancel}>
         <Text style={styles.cancelText}>Cancel incident</Text>
       </Pressable>
@@ -84,6 +108,28 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontFamily: "Inter",
   },
+  summaryBox: {
+    backgroundColor: "#FEF2F2",
+    borderRadius: 18,
+    padding: 14,
+    marginTop: 12,
+  },
+  summaryTitle: {
+    color: "#991B1B",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 8,
+    fontFamily: "InterBold",
+  },
+  summaryLine: {
+    color: "#7F1D1D",
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 2,
+    fontFamily: "Inter",
+  },
   assignmentBox: {
     backgroundColor: "#F3F4F6",
     borderRadius: 18,
@@ -108,6 +154,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#4B5563",
     marginTop: 4,
+    fontFamily: "Inter",
+  },
+  timelineBox: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 18,
+    padding: 14,
+    marginTop: 12,
+  },
+  timelineTitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    fontWeight: "800",
+    marginBottom: 8,
+    fontFamily: "InterBold",
+  },
+  timelineLine: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#374151",
+    marginBottom: 6,
     fontFamily: "Inter",
   },
   cancelButton: {

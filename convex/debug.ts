@@ -103,13 +103,14 @@ async function ensureResponderProfile(db: any, userId: any, now: number, verifie
     .unique();
 
   if (existing) {
-    await db.patch(existing._id, {
-      verificationStatus: verified ? "verified" : existing.verificationStatus,
-      verifiedAt: verified ? now : existing.verifiedAt,
-      verifiedBy: verified ? "debug-module" : existing.verifiedBy,
-      isAvailable: true,
-      updatedAt: now,
-    });
+      await db.patch(existing._id, {
+        verificationStatus: verified ? "verified" : existing.verificationStatus,
+        verifiedAt: verified ? now : existing.verifiedAt,
+        verifiedBy: verified ? "debug-module" : existing.verifiedBy,
+        isAvailable: true,
+        preferredTravelMode: existing.preferredTravelMode ?? "walking",
+        updatedAt: now,
+      });
     return await db.get(existing._id);
   }
 

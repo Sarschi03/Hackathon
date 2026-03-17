@@ -25,7 +25,7 @@ export function ResponderAlertList({
           <Text style={styles.sectionTitle}>Assigned incident</Text>
           <Text style={styles.assignmentStatus}>{activeAssignment.assignment.displayStatus}</Text>
           <Text style={styles.assignmentMeta}>
-            {activeAssignment.patientName} • {activeAssignment.assignment.etaLabel}
+            {activeAssignment.patientName} | {activeAssignment.assignment.etaLabel}
           </Text>
           <Text style={styles.assignmentMeta}>{activeAssignment.incidentLocationLabel}</Text>
           <SummaryBlock medicalSummary={activeAssignment.medicalSummary} />
@@ -53,7 +53,7 @@ export function ResponderAlertList({
             <Text style={styles.alertEta}>{alert.etaLabel}</Text>
             <Text style={styles.alertPatient}>{alert.patientName}</Text>
             <Text style={styles.alertMeta}>
-              {alert.stageLabel} • {alert.incidentLocationLabel}
+              {alert.stageLabel} | {alert.travelModeLabel} | {alert.incidentLocationLabel}
             </Text>
             <SummaryBlock medicalSummary={alert.medicalSummary} />
             <View style={styles.actionRow}>

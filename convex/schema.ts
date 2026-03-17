@@ -83,7 +83,7 @@ export default defineSchema({
     skills: v.array(v.string()),
     maxAlertEtaSeconds: v.optional(v.number()),
     isAvailable: v.boolean(),
-    preferredTravelMode: v.union(v.literal("walking")),
+    preferredTravelMode: v.union(v.literal("walking"), v.literal("driving")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -226,7 +226,7 @@ export default defineSchema({
     ),
     respondedAt: v.optional(v.number()),
     estimatedTravelSeconds: v.number(),
-    travelMode: v.union(v.literal("walking")),
+    travelMode: v.union(v.literal("walking"), v.literal("driving")),
     routeProvider: v.union(
       v.literal("google_maps"),
       v.literal("fallback_radius"),

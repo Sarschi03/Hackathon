@@ -2,11 +2,11 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
 import {
-  ALERT_STAGE_TIMEOUT_MS,
-  ETA_STAGES,
+  ALERT_RESPONSE_TIMEOUT_MS,
   INCIDENT_CONFIRMATION_WINDOW_MS,
   LOCATION_FRESHNESS_MS,
   RESPONDER_PREFILTER_MAX_KM,
+  fallbackDrivingEtaSeconds,
   fallbackWalkingEtaSeconds,
   formatAssignmentStatus,
   formatCoordinates,
@@ -14,6 +14,7 @@ import {
   formatEtaStage,
   formatIncidentStatus,
   getEtaStage,
+  getEtaStageForSeconds,
   haversineDistanceMeters,
   makeEmergencySummary,
 } from "./lib";
@@ -24,7 +25,8 @@ type ResponderCandidate = {
   lat: number;
   lng: number;
   approxDistanceMeters: number;
-  preferredTravelMode: "walking";
+  preferredTravelMode: "walking" | "driving";
+  maxAlertEtaSeconds?: number;
 };
 
 type ResponderEtaCandidate = ResponderCandidate & {
@@ -89,6 +91,15 @@ async function getLatestEscalation(db: any, incidentId: any) {
     .withIndex("by_incidentId", (q: any) => q.eq("incidentId", incidentId))
     .collect();
   return escalations.sort((a: any, b: any) => b.startedAt - a.startedAt)[0] ?? null;
+}
+
+function getFallbackEtaSeconds(
+  distanceMeters: number,
+  preferredTravelMode: "walking" | "driving",
+) {
+  return preferredTravelMode === "driving"
+    ? fallbackDrivingEtaSeconds(distanceMeters)
+    : fallbackWalkingEtaSeconds(distanceMeters);
 }
 
 export const getActiveIncidentForViewer = query({
@@ -296,7 +307,7 @@ export const evaluateIncidentConfirmation = mutation({
       ctx.db,
       incident._id,
       "incident_escalated",
-      "Confirmation window elapsed. Starting ETA-based responder search.",
+      "Confirmation window elapsed. Starting ETA-ranked responder search.",
       incident.subjectUserId,
     );
 
@@ -308,6 +319,7 @@ export const evaluateIncidentConfirmation = mutation({
     return await ctx.db.get(incident._id);
   },
 });
+
 export const getEligibleRespondersForIncident = query({
   args: {
     incidentId: v.id("incidents"),
@@ -373,7 +385,8 @@ export const getEligibleRespondersForIncident = query({
         lat: location.lat,
         lng: location.lng,
         approxDistanceMeters,
-        preferredTravelMode: "walking",
+        preferredTravelMode: responderProfile.preferredTravelMode ?? "walking",
+        maxAlertEtaSeconds: responderProfile.maxAlertEtaSeconds,
       });
     }
 
@@ -382,10 +395,10 @@ export const getEligibleRespondersForIncident = query({
     );
   },
 });
+
 export const computeResponderEtasWithGoogle = action({
   args: {
     incidentId: v.id("incidents"),
-    maxEtaSeconds: v.number(),
   },
   handler: async (ctx, args): Promise<ResponderEtaCandidate[]> => {
     const incident = await ctx.runQuery(api.incidents.getIncidentLocation, {
@@ -403,64 +416,94 @@ export const computeResponderEtasWithGoogle = action({
     }
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    const limitedCandidates: ResponderCandidate[] = candidates.slice(0, 25);
+    const limitedCandidates = candidates.slice(0, 50);
+    const destination = `${incident.lat},${incident.lng}`;
 
-    if (apiKey) {
+    async function enrichCandidatesForMode(
+      preferredTravelMode: "walking" | "driving",
+      modeCandidates: ResponderCandidate[],
+    ): Promise<ResponderEtaCandidate[]> {
+      const fallback = modeCandidates.map((candidate) => ({
+        ...candidate,
+        estimatedTravelSeconds: getFallbackEtaSeconds(
+          candidate.approxDistanceMeters,
+          preferredTravelMode,
+        ),
+        routeProvider: "fallback_radius" as const,
+      }));
+
+      if (!apiKey || modeCandidates.length === 0) {
+        return fallback;
+      }
+
       try {
-        const origins = limitedCandidates
-          .map((candidate: ResponderCandidate) => `${candidate.lat},${candidate.lng}`)
-          .join("|");
-        const destination = `${incident.lat},${incident.lng}`;
-        const url =
-          "https://maps.googleapis.com/maps/api/distancematrix/json" +
-          `?origins=${encodeURIComponent(origins)}` +
-          `&destinations=${encodeURIComponent(destination)}` +
-          "&mode=walking" +
-          `&key=${encodeURIComponent(apiKey)}`;
+        const enriched: ResponderEtaCandidate[] = [];
+        for (let index = 0; index < modeCandidates.length; index += 25) {
+          const chunk = modeCandidates.slice(index, index + 25);
+          const origins = chunk
+            .map((candidate) => `${candidate.lat},${candidate.lng}`)
+            .join("|");
+          const url =
+            "https://maps.googleapis.com/maps/api/distancematrix/json" +
+            `?origins=${encodeURIComponent(origins)}` +
+            `&destinations=${encodeURIComponent(destination)}` +
+            `&mode=${encodeURIComponent(preferredTravelMode)}` +
+            `&key=${encodeURIComponent(apiKey)}`;
 
-        const response = await fetch(url);
-        if (response.ok) {
+          const response = await fetch(url);
+          if (!response.ok) {
+            enriched.push(...fallback.slice(index, index + chunk.length));
+            continue;
+          }
+
           const payload = await response.json();
           const rows = Array.isArray(payload.rows) ? payload.rows : [];
-          const enriched: ResponderEtaCandidate[] = limitedCandidates
-            .map((candidate: ResponderCandidate, index: number) => {
-              const element = rows[index]?.elements?.[0];
+          enriched.push(
+            ...chunk.map((candidate, rowIndex) => {
+              const element = rows[rowIndex]?.elements?.[0];
               const durationSeconds =
                 element?.status === "OK" ? element.duration?.value : undefined;
-              const estimatedTravelSeconds =
-                typeof durationSeconds === "number"
-                  ? durationSeconds
-                  : fallbackWalkingEtaSeconds(candidate.approxDistanceMeters);
               return {
                 ...candidate,
-                estimatedTravelSeconds,
+                estimatedTravelSeconds:
+                  typeof durationSeconds === "number"
+                    ? durationSeconds
+                    : getFallbackEtaSeconds(
+                        candidate.approxDistanceMeters,
+                        preferredTravelMode,
+                      ),
                 routeProvider:
                   typeof durationSeconds === "number"
                     ? ("google_maps" as const)
                     : ("fallback_radius" as const),
               };
-            })
-            .filter((candidate: any) => candidate.estimatedTravelSeconds <= args.maxEtaSeconds)
-            .sort(
-              (a: any, b: any) =>
-                a.estimatedTravelSeconds - b.estimatedTravelSeconds,
-            );
-
-          return enriched;
+            }),
+          );
         }
+        return enriched;
       } catch {
+        return fallback;
       }
     }
-    return limitedCandidates
-      .map((candidate: ResponderCandidate) => ({
-        ...candidate,
-        estimatedTravelSeconds: fallbackWalkingEtaSeconds(
-          candidate.approxDistanceMeters,
-        ),
-        routeProvider: "fallback_radius" as const,
-      }))
-      .filter((candidate: any) => candidate.estimatedTravelSeconds <= args.maxEtaSeconds)
-      .sort((a: any, b: any) => a.estimatedTravelSeconds - b.estimatedTravelSeconds);
+
+    const [walkingEtas, drivingEtas] = await Promise.all([
+      enrichCandidatesForMode(
+        "walking",
+        limitedCandidates.filter((candidate) => candidate.preferredTravelMode === "walking"),
+      ),
+      enrichCandidatesForMode(
+        "driving",
+        limitedCandidates.filter((candidate) => candidate.preferredTravelMode === "driving"),
+      ),
+    ]);
+
+    return [...walkingEtas, ...drivingEtas]
+      .filter(
+        (candidate) =>
+          !candidate.maxAlertEtaSeconds ||
+          candidate.estimatedTravelSeconds <= candidate.maxAlertEtaSeconds,
+      )
+      .sort((a, b) => a.estimatedTravelSeconds - b.estimatedTravelSeconds);
   },
 });
 
@@ -470,201 +513,198 @@ export const dispatchIncidentStage = action({
     stageIndex: v.number(),
   },
   handler: async (ctx, args): Promise<{ dispatched: number }> => {
-    const stage = getEtaStage(args.stageIndex);
-    if (!stage) {
-      return { dispatched: 0 };
-    }
-
     const incident = await ctx.runQuery(api.incidents.getIncidentStatus, {
       incidentId: args.incidentId,
     });
-    if (
-      !incident ||
-      !["searching_responders", "responder_assigned"].includes(incident.status)
-    ) {
-      return { dispatched: 0 };
-    }
-    if (incident.activeAssignmentId) {
+    if (!incident || incident.status !== "searching_responders" || incident.activeAssignmentId) {
       return { dispatched: 0 };
     }
 
-    const responderEtas: ResponderEtaCandidate[] = await ctx.runAction(
-      api.incidents.computeResponderEtasWithGoogle,
-      {
-        incidentId: args.incidentId,
-        maxEtaSeconds: stage.maxEtaSeconds,
-      },
-    );
-
-    await ctx.runMutation(api.incidents.recordStageDispatch, {
+    const responderEtas = await ctx.runAction(api.incidents.computeResponderEtasWithGoogle, {
       incidentId: args.incidentId,
-      stageIndex: stage.index,
-      stage: stage.stage,
-      maxEtaSeconds: stage.maxEtaSeconds,
-      responders: responderEtas,
     });
 
-    if (args.stageIndex < ETA_STAGES.length - 1) {
-      await ctx.runMutation(api.incidents.scheduleStageAdvance, {
+    const nextResponder = responderEtas[0];
+    if (!nextResponder) {
+      await ctx.runMutation(api.incidents.markSearchExhausted, {
         incidentId: args.incidentId,
-        stageIndex: args.stageIndex,
       });
+      return { dispatched: 0 };
     }
 
-    return { dispatched: responderEtas.length };
+    await ctx.runMutation(api.incidents.recordSequentialDispatch, {
+      incidentId: args.incidentId,
+      queueLength: responderEtas.length,
+      responder: nextResponder,
+    });
+
+    return { dispatched: 1 };
   },
 });
-export const scheduleStageAdvance = mutation({
+
+export const markSearchExhausted = mutation({
   args: {
     incidentId: v.id("incidents"),
-    stageIndex: v.number(),
   },
   handler: async (ctx, args) => {
-    await ctx.scheduler.runAfter(
-      ALERT_STAGE_TIMEOUT_MS,
-      api.incidents.advanceIncidentStageIfUnclaimed,
-      {
-        incidentId: args.incidentId,
-        stageIndex: args.stageIndex,
-      },
+    const incident = await ctx.db.get(args.incidentId);
+    if (!incident || incident.activeAssignmentId || incident.status !== "searching_responders") {
+      return false;
+    }
+
+    const timeline = await ctx.db
+      .query("incidentTimeline")
+      .withIndex("by_incidentId", (q: any) => q.eq("incidentId", args.incidentId))
+      .collect();
+    if (timeline.some((event: any) => event.eventType === "search_exhausted")) {
+      return false;
+    }
+
+    await addTimelineEvent(
+      ctx.db,
+      args.incidentId,
+      "search_exhausted",
+      "All nearby responders were tried in fastest-first order and none accepted.",
     );
     return true;
   },
 });
 
-export const advanceIncidentStageIfUnclaimed = mutation({
+export const timeoutResponderAlert = mutation({
   args: {
     incidentId: v.id("incidents"),
-    stageIndex: v.number(),
+    alertId: v.id("incidentAlerts"),
   },
   handler: async (ctx, args) => {
-    const incident = await ctx.db.get(args.incidentId);
-    if (!incident || incident.activeAssignmentId) {
-      return { advanced: false };
+    const [incident, alert] = await Promise.all([
+      ctx.db.get(args.incidentId),
+      ctx.db.get(args.alertId),
+    ]);
+    if (!incident || !alert) {
+      return { timedOut: false };
     }
-    if (incident.status !== "searching_responders") {
-      return { advanced: false };
+    if (incident.status !== "searching_responders" || incident.activeAssignmentId) {
+      return { timedOut: false };
     }
-
-    const escalation = await ctx.db
-      .query("incidentEscalations")
-      .withIndex("by_incidentId_stageIndex", (q: any) =>
-        q.eq("incidentId", args.incidentId).eq("stageIndex", args.stageIndex),
-      )
-      .unique();
-    if (escalation && !escalation.completedAt) {
-      await ctx.db.patch(escalation._id, { completedAt: Date.now() });
+    if (alert.responseStatus !== "pending") {
+      return { timedOut: false };
     }
 
-    const nextStage = getEtaStage(args.stageIndex + 1);
-    if (!nextStage) {
-      await addTimelineEvent(
-        ctx.db,
-        args.incidentId,
-        "search_exhausted",
-        "No responder accepted within the configured ETA stages.",
-      );
-      return { advanced: false };
-    }
+    const now = Date.now();
+    await ctx.db.patch(alert._id, {
+      responseStatus: "timed_out",
+      respondedAt: now,
+    });
 
     await addTimelineEvent(
       ctx.db,
-      args.incidentId,
-      "stage_advanced",
-      `Escalating responder search to ${nextStage.maxEtaSeconds / 60} minutes ETA.`,
+      incident._id,
+      "responder_timeout",
+      "No responder reply within 5 seconds, notifying the next fastest responder.",
+      undefined,
+      { alertId: alert._id, responderUserId: alert.responderUserId },
     );
 
     await ctx.scheduler.runAfter(0, api.incidents.dispatchIncidentStage, {
-      incidentId: args.incidentId,
-      stageIndex: nextStage.index,
+      incidentId: incident._id,
+      stageIndex: 0,
     });
 
-    return { advanced: true };
+    return { timedOut: true };
   },
 });
-export const recordStageDispatch = mutation({
+
+export const recordSequentialDispatch = mutation({
   args: {
     incidentId: v.id("incidents"),
-    stageIndex: v.number(),
-    stage: v.union(
-      v.literal("eta_3m"),
-      v.literal("eta_6m"),
-      v.literal("eta_10m"),
-    ),
-    maxEtaSeconds: v.number(),
-    responders: v.array(
-      v.object({
-        userId: v.id("users"),
-        fullName: v.string(),
-        lat: v.number(),
-        lng: v.number(),
-        approxDistanceMeters: v.number(),
-        preferredTravelMode: v.union(v.literal("walking")),
-        estimatedTravelSeconds: v.number(),
-        routeProvider: v.union(
-          v.literal("google_maps"),
-          v.literal("fallback_radius"),
-        ),
-      }),
-    ),
+    queueLength: v.number(),
+    responder: v.object({
+      userId: v.id("users"),
+      fullName: v.string(),
+      lat: v.number(),
+      lng: v.number(),
+      approxDistanceMeters: v.number(),
+      preferredTravelMode: v.union(v.literal("walking"), v.literal("driving")),
+      estimatedTravelSeconds: v.number(),
+      routeProvider: v.union(
+        v.literal("google_maps"),
+        v.literal("fallback_radius"),
+      ),
+      maxAlertEtaSeconds: v.optional(v.number()),
+    }),
   },
   handler: async (ctx, args) => {
     const incident = await ctx.db.get(args.incidentId);
-    if (!incident || incident.activeAssignmentId) {
-      return [];
+    if (!incident || incident.status !== "searching_responders" || incident.activeAssignmentId) {
+      return null;
+    }
+
+    const existingAlerts = await ctx.db
+      .query("incidentAlerts")
+      .withIndex("by_incidentId", (q: any) => q.eq("incidentId", args.incidentId))
+      .collect();
+    if (existingAlerts.some((alert: any) => alert.responseStatus === "pending")) {
+      return null;
+    }
+
+    const stage = getEtaStageForSeconds(args.responder.estimatedTravelSeconds) ?? getEtaStage(0);
+    if (!stage) {
+      return null;
     }
 
     const now = Date.now();
     const escalationId = await ctx.db.insert("incidentEscalations", {
       incidentId: args.incidentId,
-      stage: args.stage,
-      stageIndex: args.stageIndex,
-      maxEtaSeconds: args.maxEtaSeconds,
-      routeProvider: args.responders.some(
-        (responder) => responder.routeProvider === "google_maps",
-      )
-        ? "google_maps"
-        : "fallback_radius",
-      responderCount: args.responders.length,
+      stage: stage.stage,
+      stageIndex: stage.index,
+      maxEtaSeconds: stage.maxEtaSeconds,
+      routeProvider: args.responder.routeProvider,
+      responderCount: args.queueLength,
       startedAt: now,
     });
 
-    const alertIds = [];
-    for (const responder of args.responders) {
-        const alertId = await ctx.db.insert("incidentAlerts", {
-          incidentId: args.incidentId,
-          responderUserId: responder.userId,
-          stage: args.stage,
-          stageIndex: args.stageIndex,
-          maxEtaSeconds: args.maxEtaSeconds,
-          sentAt: now,
-          deliveryStatus: "sent",
-          responseStatus: "pending",
-          respondedAt: undefined,
-          estimatedTravelSeconds: responder.estimatedTravelSeconds,
-          travelMode: responder.preferredTravelMode,
-          routeProvider: responder.routeProvider,
-          selectionReason: "eta_within_stage",
-        });
-      alertIds.push(alertId);
-    }
+    const alertId = await ctx.db.insert("incidentAlerts", {
+      incidentId: args.incidentId,
+      responderUserId: args.responder.userId,
+      stage: stage.stage,
+      stageIndex: stage.index,
+      maxEtaSeconds: stage.maxEtaSeconds,
+      sentAt: now,
+      deliveryStatus: "sent",
+      responseStatus: "pending",
+      respondedAt: undefined,
+      estimatedTravelSeconds: args.responder.estimatedTravelSeconds,
+      travelMode: args.responder.preferredTravelMode,
+      routeProvider: args.responder.routeProvider,
+      selectionReason: "fastest_eta_first",
+    });
 
     await addTimelineEvent(
       ctx.db,
       args.incidentId,
-      "stage_dispatched",
-      `Alerted ${args.responders.length} responder(s) within ${
-        args.maxEtaSeconds / 60
-      } minutes ETA.`,
+      "responder_notified",
+      `Notified ${args.responder.fullName} based on the fastest ${
+        args.responder.preferredTravelMode
+      } route.`,
       undefined,
       {
-        stage: args.stage,
+        alertId,
         escalationId,
-        alertIds,
+        responderUserId: args.responder.userId,
+        queueLength: args.queueLength,
       },
     );
 
-    return alertIds;
+    await ctx.scheduler.runAfter(
+      ALERT_RESPONSE_TIMEOUT_MS,
+      api.incidents.timeoutResponderAlert,
+      {
+        incidentId: args.incidentId,
+        alertId,
+      },
+    );
+
+    return alertId;
   },
 });
 

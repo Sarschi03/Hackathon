@@ -1,10 +1,12 @@
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import {
   formatAssignmentStatus,
   formatCoordinates,
   formatEtaMinutes,
   formatEtaStage,
+  formatTravelMode,
   makeEmergencySummary,
 } from "./lib";
 
@@ -82,6 +84,30 @@ export const getMyResponderProfile = query({
   },
 });
 
+export const getMyVerificationState = query({
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await getViewer(ctx.db, args.sessionToken);
+    const [profile, submissions] = await Promise.all([
+      getResponderProfile(ctx.db, user._id),
+      ctx.db
+        .query("verificationSubmissions")
+        .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
+        .collect(),
+    ]);
+
+    const latestSubmission =
+      submissions.sort((a: any, b: any) => b.submittedAt - a.submittedAt)[0] ?? null;
+
+    return {
+      profile,
+      latestSubmission,
+    };
+  },
+});
+
 export const submitVerification = mutation({
   args: {
     sessionToken: v.string(),
@@ -146,6 +172,73 @@ export const setAvailability = mutation({
   },
 });
 
+export const setPreferredTravelMode = mutation({
+  args: {
+    sessionToken: v.string(),
+    preferredTravelMode: v.union(v.literal("walking"), v.literal("driving")),
+  },
+  handler: async (ctx, args) => {
+    const { responderProfile } = await requireResponder(ctx.db, args.sessionToken);
+    await ctx.db.patch(responderProfile._id, {
+      preferredTravelMode: args.preferredTravelMode,
+      updatedAt: Date.now(),
+    });
+    return await ctx.db.get(responderProfile._id);
+  },
+});
+
+export const setMaxAlertEtaSeconds = mutation({
+  args: {
+    sessionToken: v.string(),
+    maxAlertEtaSeconds: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { responderProfile } = await requireResponder(ctx.db, args.sessionToken);
+    await ctx.db.patch(responderProfile._id, {
+      maxAlertEtaSeconds: args.maxAlertEtaSeconds,
+      updatedAt: Date.now(),
+    });
+    return await ctx.db.get(responderProfile._id);
+  },
+});
+
+export const approveMyResponderForDemo = mutation({
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user, responderProfile } = await requireResponder(ctx.db, args.sessionToken);
+    const now = Date.now();
+
+    await ctx.db.patch(responderProfile._id, {
+      verificationStatus: "verified",
+      verifiedAt: now,
+      verifiedBy: "demo-ops",
+      isAvailable: true,
+      updatedAt: now,
+    });
+
+    const submissions = await ctx.db
+      .query("verificationSubmissions")
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
+      .collect();
+    const latestSubmission =
+      submissions.sort((a: any, b: any) => b.submittedAt - a.submittedAt)[0] ?? null;
+
+    if (latestSubmission && latestSubmission.reviewStatus === "pending") {
+      await ctx.db.patch(latestSubmission._id, {
+        reviewStatus: "approved",
+        reviewNotes:
+          latestSubmission.reviewNotes ??
+          "Approved in prototype demo mode for end-to-end responder testing.",
+        reviewedAt: now,
+      });
+    }
+
+    return await ctx.db.get(responderProfile._id);
+  },
+});
+
 export const listMyIncomingAlerts = query({
   args: {
     sessionToken: v.string(),
@@ -176,6 +269,7 @@ export const listMyIncomingAlerts = query({
         medicalSummary: emergency.medicalSummary,
         etaLabel: formatEtaMinutes(alert.estimatedTravelSeconds),
         stageLabel: formatEtaStage(alert.stage),
+        travelModeLabel: formatTravelMode(alert.travelMode),
         incidentLocationLabel: incident.addressText
           ? incident.addressText
           : formatCoordinates(incident.lat, incident.lng),
@@ -329,6 +423,11 @@ export const declineAlert = mutation({
       user._id,
       { alertId: alert._id },
     );
+
+    await ctx.scheduler.runAfter(0, api.incidents.dispatchIncidentStage, {
+      incidentId: alert.incidentId,
+      stageIndex: 0,
+    });
 
     return await ctx.db.get(alert._id);
   },

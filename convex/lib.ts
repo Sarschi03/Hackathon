@@ -1,3 +1,4 @@
+export const ALERT_RESPONSE_TIMEOUT_MS = 5_000;
 export const ALERT_STAGE_TIMEOUT_MS = 20_000;
 export const INCIDENT_CONFIRMATION_WINDOW_MS = 10_000;
 export const LOCATION_FRESHNESS_MS = 15 * 60 * 1000;
@@ -11,6 +12,10 @@ export const ETA_STAGES = [
 
 export function getEtaStage(stageIndex: number) {
   return ETA_STAGES[stageIndex] ?? null;
+}
+
+export function getEtaStageForSeconds(seconds: number) {
+  return ETA_STAGES.find((stage) => seconds <= stage.maxEtaSeconds) ?? ETA_STAGES.at(-1) ?? null;
 }
 
 export function formatEtaMinutes(seconds?: number | null) {
@@ -95,6 +100,15 @@ export function haversineDistanceMeters(
 export function fallbackWalkingEtaSeconds(distanceMeters: number) {
   const averageWalkingSpeedMetersPerSecond = 1.4;
   return Math.round(distanceMeters / averageWalkingSpeedMetersPerSecond);
+}
+
+export function fallbackDrivingEtaSeconds(distanceMeters: number) {
+  const averageDrivingSpeedMetersPerSecond = 11.1;
+  return Math.max(60, Math.round(distanceMeters / averageDrivingSpeedMetersPerSecond));
+}
+
+export function formatTravelMode(mode: "walking" | "driving") {
+  return mode === "driving" ? "Driving" : "Walking";
 }
 
 export function makeEmergencySummary(profile: {

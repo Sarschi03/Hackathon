@@ -13,9 +13,11 @@ import {
 } from "react-native";
 import { api } from "@/convex/_generated/api";
 import { ActiveIncidentCard } from "@/components/home/active-incident-card";
+import { EmergencyGuidanceCard } from "@/components/home/emergency-guidance-card";
 import { PatientHomeState } from "@/components/home/patient-home-state";
 import { ResponderAlertList } from "@/components/home/responder-alert-list";
 import { ResponderAvailabilityCard } from "@/components/home/responder-availability-card";
+import { ResponderVerificationCard } from "@/components/home/responder-verification-card";
 import { useAppSession } from "@/hooks/use-app-session";
 import { useDemoVitals } from "@/hooks/use-demo-vitals";
 import { useHealthConnect } from "@/hooks/use-health-connect";
@@ -42,7 +44,7 @@ async function getCurrentCoordinates() {
 export default function HomeScreen() {
   const router = useRouter();
   const { sessionToken, isReady, viewer, currentRole, isAuthenticated } = useAppSession();
-  const { heartRate, bloodOxygen } = useHealthConnect();
+  const { heartRate, bloodOxygen, isAvailable: isHealthAvailable } = useHealthConnect();
   const vitals = useDemoVitals({
     baselineHeartRate: heartRate,
     baselineBloodOxygen: bloodOxygen,
@@ -54,6 +56,10 @@ export default function HomeScreen() {
   );
   const responderProfile = useQuery(
     api.responders.getMyResponderProfile,
+    sessionToken && currentRole === "responder" ? { sessionToken } : "skip",
+  );
+  const verificationState = useQuery(
+    api.responders.getMyVerificationState,
     sessionToken && currentRole === "responder" ? { sessionToken } : "skip",
   );
   const incomingAlerts = useQuery(
@@ -69,12 +75,17 @@ export default function HomeScreen() {
   const cancelIncident = useMutation(api.incidents.cancelIncident);
   const updateMyLocation = useMutation(api.locations.updateMyLocation);
   const setAvailability = useMutation(api.responders.setAvailability);
+  const setPreferredTravelMode = useMutation(api.responders.setPreferredTravelMode);
+  const setMaxAlertEtaSeconds = useMutation(api.responders.setMaxAlertEtaSeconds);
+  const submitVerification = useMutation(api.responders.submitVerification);
+  const approveMyResponderForDemo = useMutation(api.responders.approveMyResponderForDemo);
   const acceptAlert = useMutation(api.responders.acceptAlert);
   const declineAlert = useMutation(api.responders.declineAlert);
   const updateAssignmentStatus = useMutation(api.responders.updateAssignmentStatus);
   const requestBackup = useMutation(api.responders.requestBackup);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTriggeringWearable, setIsTriggeringWearable] = useState(false);
   const viewerUser = (viewer as any)?.user;
 
   const firstName = useMemo(() => {
@@ -105,6 +116,21 @@ export default function HomeScreen() {
     void refreshResponderLocation();
   }, [currentRole, sessionToken, updateMyLocation]);
 
+  async function updateViewerLocation(source: "foreground" | "incident") {
+    if (!sessionToken) {
+      return null;
+    }
+    const coords = await getCurrentCoordinates();
+    await updateMyLocation({
+      sessionToken,
+      lat: coords.latitude,
+      lng: coords.longitude,
+      accuracyMeters: "accuracy" in coords ? coords.accuracy : undefined,
+      source,
+    });
+    return coords;
+  }
+
   const handleSosPress = async () => {
     if (!sessionToken) {
       return;
@@ -119,14 +145,10 @@ export default function HomeScreen() {
           reason: "Cancelled from patient home",
         });
       } else {
-        const coords = await getCurrentCoordinates();
-        await updateMyLocation({
-          sessionToken,
-          lat: coords.latitude,
-          lng: coords.longitude,
-          accuracyMeters: "accuracy" in coords ? coords.accuracy : undefined,
-          source: "incident",
-        });
+        const coords = await updateViewerLocation("incident");
+        if (!coords) {
+          return;
+        }
         await createIncident({
           sessionToken,
           triggerType: "manual",
@@ -146,19 +168,52 @@ export default function HomeScreen() {
     }
   };
 
+  const handleWearableTrigger = async () => {
+    if (!sessionToken || activeIncident?.incident) {
+      return;
+    }
+
+    setIsTriggeringWearable(true);
+    try {
+      const coords = await updateViewerLocation("incident");
+      if (!coords) {
+        return;
+      }
+      await createIncident({
+        sessionToken,
+        triggerType: "wearable",
+        lat: coords.latitude,
+        lng: coords.longitude,
+        addressText: "Automatic wearable alert",
+        notes: "Simulated irregular heart rhythm detected from wearable stream.",
+        vitals: {
+          heartRate: vitals.heartRate,
+          spo2: vitals.bloodOxygen,
+          bloodPressureSystolic: vitals.systolic,
+          bloodPressureDiastolic: vitals.diastolic,
+          respirationRate: vitals.respiratoryRate,
+          rawPayload: JSON.stringify({
+            source: isHealthAvailable ? "health-connect" : "demo-feed",
+            statusLabel: vitals.statusLabel,
+          }),
+        },
+      });
+    } catch (error) {
+      Alert.alert(
+        "Wearable escalation failed",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    } finally {
+      setIsTriggeringWearable(false);
+    }
+  };
+
   const handleToggleAvailability = async () => {
     if (!sessionToken || !responderProfile) {
       return;
     }
     try {
-      const coords = await getCurrentCoordinates();
-      await updateMyLocation({
-        sessionToken,
-        lat: coords.latitude,
-        lng: coords.longitude,
-        accuracyMeters: "accuracy" in coords ? coords.accuracy : undefined,
-        source: "foreground",
-      });
+      await updateViewerLocation("foreground");
       await setAvailability({
         sessionToken,
         isAvailable: !responderProfile.isAvailable,
@@ -171,10 +226,80 @@ export default function HomeScreen() {
     }
   };
 
-  const handleAlertAction = async (
-    action: "accept" | "decline",
-    alertId: string,
-  ) => {
+  const handleTravelModeChange = async (preferredTravelMode: "walking" | "driving") => {
+    if (!sessionToken || !responderProfile) {
+      return;
+    }
+    try {
+      await setPreferredTravelMode({
+        sessionToken,
+        preferredTravelMode,
+      });
+    } catch (error) {
+      Alert.alert(
+        "Travel mode update failed",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  };
+
+  const handleCoverageChange = async (maxAlertEtaSeconds: number) => {
+    if (!sessionToken || !responderProfile) {
+      return;
+    }
+    try {
+      await setMaxAlertEtaSeconds({
+        sessionToken,
+        maxAlertEtaSeconds,
+      });
+    } catch (error) {
+      Alert.alert(
+        "Coverage update failed",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  };
+
+  const handleSubmitVerification = async (input: {
+    qualificationType: string;
+    certificationNumber?: string;
+    notes?: string;
+  }) => {
+    if (!sessionToken) {
+      return;
+    }
+    try {
+      await submitVerification({
+        sessionToken,
+        qualificationType: input.qualificationType,
+        certificationNumber: input.certificationNumber,
+        notes: input.notes,
+      });
+      Alert.alert("Verification submitted", "Your responder credentials were saved for review.");
+    } catch (error) {
+      Alert.alert(
+        "Verification failed",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  };
+
+  const handleApproveDemo = async () => {
+    if (!sessionToken) {
+      return;
+    }
+    try {
+      await approveMyResponderForDemo({ sessionToken });
+      Alert.alert("Demo responder approved", "This account can now receive incident alerts.");
+    } catch (error) {
+      Alert.alert(
+        "Demo approval failed",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  };
+
+  const handleAlertAction = async (action: "accept" | "decline", alertId: string) => {
     if (!sessionToken) {
       return;
     }
@@ -203,7 +328,10 @@ export default function HomeScreen() {
     try {
       if (action === "backup") {
         await requestBackup({ sessionToken, assignmentId: assignmentId as never });
-        Alert.alert("Backup requested", "Placeholder backup request was added to the incident timeline.");
+        Alert.alert(
+          "Backup requested",
+          "A backup request was added to the incident timeline for the demo.",
+        );
         return;
       }
 
@@ -257,6 +385,13 @@ export default function HomeScreen() {
             <ResponderAvailabilityCard
               responderProfile={responderProfile}
               onToggleAvailability={() => void handleToggleAvailability()}
+              onSelectTravelMode={(mode) => void handleTravelModeChange(mode)}
+              onSelectCoverage={(coverage) => void handleCoverageChange(coverage)}
+            />
+            <ResponderVerificationCard
+              verificationState={verificationState}
+              onSubmitVerification={handleSubmitVerification}
+              onApproveDemo={handleApproveDemo}
             />
             <ResponderAlertList
               alerts={incomingAlerts}
@@ -282,6 +417,12 @@ export default function HomeScreen() {
               hasActiveIncident={Boolean(activeIncident?.incident)}
               isSubmitting={isSubmitting}
               onSosPress={() => void handleSosPress()}
+            />
+            <EmergencyGuidanceCard
+              hasActiveIncident={Boolean(activeIncident?.incident)}
+              isTriggeringWearable={isTriggeringWearable}
+              vitals={vitals}
+              onTriggerWearable={() => void handleWearableTrigger()}
             />
             {activeIncident?.incident ? (
               <ActiveIncidentCard
