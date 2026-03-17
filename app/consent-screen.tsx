@@ -12,12 +12,14 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { useLocalization } from '@/hooks/use-localization';
 
 interface ConsentScreenProps {
   onAccept: () => void;
 }
 
 export default function ConsentScreen({ onAccept }: ConsentScreenProps) {
+  const { t } = useLocalization();
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
 
   const handleScroll = ({ nativeEvent }: any) => {
@@ -45,10 +47,8 @@ export default function ConsentScreen({ onAccept }: ConsentScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Privacy Policy</Text>
-        <Text style={styles.subtitle}>
-          We care about your privacy. Please read and accept the terms before using the application.
-        </Text>
+        <Text style={styles.title}>{t('consent_title')}</Text>
+        <Text style={styles.subtitle}>{t('consent_subtitle')}</Text>
 
         <ScrollView
           style={styles.scrollArea}
@@ -110,7 +110,7 @@ export default function ConsentScreen({ onAccept }: ConsentScreenProps) {
 
         {!scrolledToBottom && (
           <Text style={styles.scrollHint}>
-            Scroll to the bottom to confirm
+            {t('consent_scroll')}
           </Text>
         )}
 
@@ -119,7 +119,7 @@ export default function ConsentScreen({ onAccept }: ConsentScreenProps) {
             style={styles.declineBtn}
             onPress={handleDecline}
           >
-            <Text style={styles.declineTxt}>Decline</Text>
+            <Text style={styles.declineTxt}>{t('consent_decline')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -130,7 +130,7 @@ export default function ConsentScreen({ onAccept }: ConsentScreenProps) {
             onPress={scrolledToBottom ? onAccept : undefined}
             disabled={!scrolledToBottom}
           >
-            <Text style={styles.acceptTxt}>Accept</Text>
+            <Text style={styles.acceptTxt}>{t('consent_accept')}</Text>
           </TouchableOpacity>
         </View>
       </View>

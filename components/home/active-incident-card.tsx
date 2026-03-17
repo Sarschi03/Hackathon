@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocalization } from "@/hooks/use-localization";
 
 export function ActiveIncidentCard({
   incidentState,
@@ -8,16 +9,17 @@ export function ActiveIncidentCard({
   incidentState: any;
   onCancel: () => void;
 }) {
+  const { t } = useLocalization();
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Active incident</Text>
+        <Text style={styles.title}>{t('incident_title')}</Text>
         <Text style={styles.severity}>{incidentState.incident.severity.toUpperCase()}</Text>
       </View>
       <Text style={styles.status}>{incidentState.displayStatus}</Text>
       <Text style={styles.location}>{incidentState.incidentLocationLabel}</Text>
       {incidentState.escalationLabel ? (
-        <Text style={styles.meta}>Search stage: {incidentState.escalationLabel}</Text>
+        <Text style={styles.meta}>{t('incident_stage')}: {incidentState.escalationLabel}</Text>
       ) : null}
       {incidentState.medicalSummary ? (
         <View style={styles.summaryBox}>
@@ -35,7 +37,7 @@ export function ActiveIncidentCard({
       ) : null}
       {incidentState.assignment ? (
         <View style={styles.assignmentBox}>
-          <Text style={styles.assignmentTitle}>Assigned responder</Text>
+          <Text style={styles.assignmentTitle}>{t('incident_responder')}</Text>
           <Text style={styles.assignmentBody}>
             {incidentState.assignment.responderName} | {incidentState.assignment.displayStatus}
           </Text>
@@ -43,7 +45,7 @@ export function ActiveIncidentCard({
         </View>
       ) : (
         <Text style={styles.meta}>
-          {incidentState.timeline.at(-1)?.message ?? "Waiting for escalation events."}
+          {incidentState.timeline.at(-1)?.message ?? t('incident_waiting')}
         </Text>
       )}
       {incidentState.timeline?.length ? (
@@ -57,7 +59,7 @@ export function ActiveIncidentCard({
         </View>
       ) : null}
       <Pressable style={styles.cancelButton} onPress={onCancel}>
-        <Text style={styles.cancelText}>Cancel incident</Text>
+        <Text style={styles.cancelText}>{t('btn_cancel_incident')}</Text>
       </Pressable>
     </View>
   );

@@ -10,31 +10,33 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useLocalization } from '@/hooks/use-localization';
 
 const { width } = Dimensions.get('window');
 
-const slides = [
-  {
-    key: '1',
-    title: 'Track Your Vitals',
-    desc: 'Monitor heart rate, blood oxygen, respiratory rate, and blood pressure in real time directly from your device.',
-  },
-  {
-    key: '2',
-    title: 'Get Help Instantly',
-    desc: 'One tap SOS connects you to emergency services and notifies your emergency contacts automatically.',
-  },
-  {
-    key: '3',
-    title: 'Stay Prepared',
-    desc: 'Find nearby AEDs, emergency clinics, and first-responders — even when offline.',
-  },
-];
-
 export default function OnboardingSlides() {
   const router = useRouter();
+  const { t } = useLocalization();
   const flatListRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const slides = [
+    {
+      key: '1',
+      title: t('onboarding_1_title'),
+      desc: t('onboarding_1_desc'),
+    },
+    {
+      key: '2',
+      title: t('onboarding_2_title'),
+      desc: t('onboarding_2_desc'),
+    },
+    {
+      key: '3',
+      title: t('onboarding_3_title'),
+      desc: t('onboarding_3_desc'),
+    },
+  ];
 
   const goNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -103,7 +105,7 @@ export default function OnboardingSlides() {
           style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.6 }]}
           onPress={() => router.replace('/login')}
         >
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('btn_skip')}</Text>
         </Pressable>
 
         <Pressable
@@ -111,7 +113,7 @@ export default function OnboardingSlides() {
           onPress={goNext}
         >
           <Text style={styles.continueText}>
-            {currentIndex === slides.length - 1 ? 'Get Started' : 'Continue'}
+            {currentIndex === slides.length - 1 ? t('btn_get_started') : t('btn_continue')}
           </Text>
         </Pressable>
       </View>
@@ -145,6 +147,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#1E1E1E',
     letterSpacing: 0.5,
+    fontFamily: 'Inter',
   },
   slide: {
     width,
@@ -183,6 +186,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
     marginHorizontal: 40,
     flex: 1,
+    fontFamily: 'Inter',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -202,6 +206,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#555555',
+    fontFamily: 'InterMedium',
   },
   continueBtn: {
     paddingHorizontal: 40,
@@ -213,5 +218,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
+    fontFamily: 'InterSemiBold',
   },
 });
