@@ -27,12 +27,13 @@ export function ResponderAlertList({
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${mode}`;
     await Linking.openURL(url);
   };
+  const { t } = useLocalization();
 
   return (
     <View style={styles.section}>
       {activeAssignment ? (
         <View style={styles.assignmentCard}>
-          <Text style={styles.sectionTitle}>Assigned incident</Text>
+          <Text style={styles.sectionTitle}>{t("resp_assigned_incident")}</Text>
           <Text style={styles.assignmentStatus}>{activeAssignment.assignment.displayStatus}</Text>
           <Text style={styles.assignmentMeta}>
             {activeAssignment.patientName} | {activeAssignment.assignment.etaLabel}
@@ -54,26 +55,28 @@ export function ResponderAlertList({
               }
             />
             <SmallAction
-              label="Request backup"
+              label={t("resp_btn_backup")}
               onPress={() => onRequestBackup(String(activeAssignment.assignment._id))}
             />
             <SmallAction
-              label="Arrived"
+              label={t("resp_btn_arrived")}
               onPress={() => onMarkArrived(String(activeAssignment.assignment._id))}
             />
             <SmallAction
-              label="Complete"
+              label={t("resp_btn_complete")}
               onPress={() => onMarkComplete(String(activeAssignment.assignment._id))}
             />
           </View>
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Incoming alerts</Text>
+      <Text style={styles.sectionTitle}>{t("resp_incoming_alerts")}</Text>
       {alerts && alerts.length > 0 ? (
         alerts.map((alert) => (
           <View key={alert._id} style={styles.alertCard}>
-            <Text style={styles.alertEta}>{alert.etaLabel}</Text>
+            <Text style={alert.etaLabel === "URGENT" ? [styles.alertEta, { color: "#EF4444" }] : styles.alertEta}>
+              {alert.etaLabel}
+            </Text>
             <Text style={styles.alertPatient}>{alert.patientName}</Text>
             <Text style={styles.alertMeta}>
               {alert.stageLabel} | {alert.travelModeLabel} | {alert.incidentLocationLabel}
@@ -87,16 +90,17 @@ export function ResponderAlertList({
                   void openDirections(alert.incident.lat, alert.incident.lng, alert.travelMode)
                 }
               />
-              <SmallAction label="Decline" secondary onPress={() => onDecline(String(alert._id))} />
-              <SmallAction label="Accept" onPress={() => onAccept(String(alert._id))} />
+            
+              <SmallAction label={t("resp_decline")} secondary onPress={() => onDecline(String(alert._id))} />
+              <SmallAction label={t("resp_accept")} onPress={() => onAccept(String(alert._id))} />
             </View>
           </View>
         ))
       ) : (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No active alerts</Text>
+          <Text style={styles.emptyTitle}>{t("resp_no_alerts")}</Text>
           <Text style={styles.emptyBody}>
-            Keep availability on and location fresh to receive the next incident.
+            {t("resp_no_alerts_desc")}
           </Text>
         </View>
       )}
@@ -105,13 +109,14 @@ export function ResponderAlertList({
 }
 
 function SummaryBlock({ medicalSummary }: { medicalSummary: any }) {
+  const { t } = useLocalization();
   return (
     <View style={styles.summaryBox}>
-      <Text style={styles.summaryTitle}>Emergency summary</Text>
-      <Text style={styles.summaryLine}>Blood group: {medicalSummary?.bloodGroup || "Unknown"}</Text>
-      <Text style={styles.summaryLine}>Allergies: {medicalSummary?.allergies || "None listed"}</Text>
-      <Text style={styles.summaryLine}>Conditions: {medicalSummary?.conditions || "None listed"}</Text>
-      <Text style={styles.summaryLine}>Medications: {medicalSummary?.medications || "None listed"}</Text>
+      <Text style={styles.summaryTitle}>{t("resp_emergency_summary")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_blood_group")}: {medicalSummary?.bloodGroup || t("resp_unknown")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_allergies")}: {medicalSummary?.allergies || t("resp_none")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_conditions")}: {medicalSummary?.conditions || t("resp_none")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_medications")}: {medicalSummary?.medications || t("resp_none")}</Text>
     </View>
   );
 }
@@ -137,107 +142,147 @@ function SmallAction({
 
 const styles = StyleSheet.create({
   section: {
-    gap: 12,
+    gap: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 1.1,
+    marginBottom: 4,
+    fontFamily: "InterSemiBold",
+    paddingLeft: 4,
   },
   assignmentCard: {
-    backgroundColor: "#FFF7ED",
-    borderRadius: 28,
-    padding: 18,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4BAEE8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   assignmentStatus: {
     fontSize: 22,
-    fontWeight: "800",
-    color: "#9A3412",
-    marginTop: 4,
+    fontWeight: "700",
+    color: "#1A1C22",
+    marginTop: 8,
+    fontFamily: "InterBold",
   },
   assignmentMeta: {
     fontSize: 14,
-    color: "#7C2D12",
+    color: "#666666",
     marginTop: 4,
+    fontFamily: "Inter",
   },
   alertCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    padding: 18,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   alertEta: {
     fontSize: 24,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontWeight: "700",
+    color: "#1A1C22",
+    fontFamily: "InterBold",
   },
   alertPatient: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#1E293B",
+    fontWeight: "600",
+    color: "#1A1C22",
     marginTop: 6,
+    fontFamily: "InterSemiBold",
   },
   alertMeta: {
     fontSize: 13,
     lineHeight: 18,
-    color: "#64748B",
+    color: "#6B7280",
     marginTop: 4,
+    fontFamily: "Inter",
   },
   summaryBox: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 18,
-    padding: 14,
-    marginTop: 12,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
   summaryTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#475569",
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#9CA3AF",
     textTransform: "uppercase",
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: 10,
+    fontFamily: "InterBold",
   },
   summaryLine: {
     fontSize: 13,
     lineHeight: 18,
-    color: "#334155",
-    marginBottom: 2,
+    color: "#4B5563",
+    marginBottom: 4,
+    fontFamily: "Inter",
   },
   actionRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 14,
+    marginTop: 18,
     flexWrap: "wrap",
   },
   actionButton: {
-    backgroundColor: "#0F172A",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    backgroundColor: "rgba(13, 13, 13, 0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.08)",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    // Glass shimmer effect
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
   },
   actionButtonSecondary: {
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "transparent",
+    borderColor: "rgba(0, 0, 0, 0.05)",
   },
   actionText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
+    color: "#1A1C22",
+    fontWeight: "600",
+    fontFamily: "InterSemiBold",
+    fontSize: 14,
   },
   actionTextSecondary: {
-    color: "#0F172A",
+    color: "#6B7280",
   },
   emptyCard: {
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "rgba(165, 165, 165, 0.05)",
     borderRadius: 24,
-    padding: 18,
+    padding: 24,
+    alignItems: "center",
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A1C22",
     marginBottom: 6,
+    fontFamily: "InterBold",
   },
   emptyBody: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#475569",
+    color: "#6B7280",
+    textAlign: "center",
+    fontFamily: "Inter",
   },
 });

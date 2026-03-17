@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useLocalization } from "@/hooks/use-localization";
 
 type VerificationState = {
   profile?: {
@@ -37,6 +38,7 @@ export function ResponderVerificationCard({
   onSubmitVerification,
   onApproveDemo,
 }: ResponderVerificationCardProps) {
+  const { t } = useLocalization();
   const [qualificationType, setQualificationType] = useState(
     verificationState?.profile?.qualificationType ??
       verificationState?.latestSubmission?.qualificationType ??
@@ -55,13 +57,13 @@ export function ResponderVerificationCard({
   const status = verificationState?.profile?.verificationStatus ?? "pending";
   const reviewLabel = useMemo(() => {
     if (status === "verified") {
-      return "Verified and eligible for dispatch";
+      return t("resp_verified_desc");
     }
     if (status === "rejected") {
-      return "Needs an updated credential submission";
+      return t("resp_rejected_desc");
     }
-    return "Submit credentials to unlock dispatching";
-  }, [status]);
+    return t("resp_pending_desc");
+  }, [status, t]);
 
   async function handleSubmit() {
     if (!qualificationType.trim()) {
@@ -94,7 +96,7 @@ export function ResponderVerificationCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>Responder verification</Text>
+          <Text style={styles.eyebrow}>{t("resp_verification_title")}</Text>
           <Text style={styles.title}>{reviewLabel}</Text>
         </View>
         <View style={[styles.statusChip, status === "verified" && styles.statusChipVerified]}>
@@ -106,21 +108,21 @@ export function ResponderVerificationCard({
         style={styles.input}
         value={qualificationType}
         onChangeText={setQualificationType}
-        placeholder="EMT, doctor, nurse, CPR-certified volunteer"
+        placeholder={t("resp_placeholder_qualification")}
         placeholderTextColor="#94A3B8"
       />
       <TextInput
         style={styles.input}
         value={certificationNumber}
         onChangeText={setCertificationNumber}
-        placeholder="License or certificate number"
+        placeholder={t("resp_placeholder_cert")}
         placeholderTextColor="#94A3B8"
       />
       <TextInput
         style={[styles.input, styles.notesInput]}
         value={notes}
         onChangeText={setNotes}
-        placeholder="Optional notes for the operations team"
+        placeholder={t("resp_placeholder_notes")}
         placeholderTextColor="#94A3B8"
         multiline
       />
@@ -134,11 +136,11 @@ export function ResponderVerificationCard({
       <View style={styles.actions}>
         <Pressable style={styles.primaryButton} onPress={() => void handleSubmit()} disabled={isSubmitting}>
           <Text style={styles.primaryButtonText}>
-            {isSubmitting ? "Working..." : "Submit verification"}
+            {isSubmitting ? "Working..." : t("resp_btn_submit")}
           </Text>
         </Pressable>
         <Pressable style={styles.secondaryButton} onPress={() => void handleDemoApprove()} disabled={isSubmitting}>
-          <Text style={styles.secondaryButtonText}>Approve for demo</Text>
+          <Text style={styles.secondaryButtonText}>{t("resp_btn_approve_demo")}</Text>
         </Pressable>
       </View>
     </View>
@@ -148,92 +150,113 @@ export function ResponderVerificationCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 28,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   eyebrow: {
-    color: "#2563EB",
+    color: "#4BAEE8",
     fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1,
+    fontWeight: "600",
+    letterSpacing: 1.1,
     textTransform: "uppercase",
     marginBottom: 6,
+    fontFamily: "InterSemiBold",
   },
   title: {
-    color: "#0F172A",
+    color: "#1A1C22",
     fontSize: 22,
-    fontWeight: "800",
+    fontWeight: "700",
     lineHeight: 27,
     maxWidth: 240,
+    fontFamily: "InterBold",
   },
   statusChip: {
     alignSelf: "flex-start",
     borderRadius: 999,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "rgba(165, 165, 165, 0.1)",
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   statusChipVerified: {
-    backgroundColor: "#DCFCE7",
+    backgroundColor: "rgba(75, 174, 232, 0.1)",
   },
   statusChipText: {
-    color: "#0F172A",
+    color: "#666666",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
     textTransform: "capitalize",
+    fontFamily: "InterSemiBold",
   },
   input: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#F3F4F6",
     paddingHorizontal: 14,
     paddingVertical: 13,
     marginBottom: 10,
-    color: "#0F172A",
+    color: "#1A1C22",
     fontSize: 14,
+    fontFamily: "Inter",
   },
   notesInput: {
     minHeight: 88,
     textAlignVertical: "top",
   },
   reviewNote: {
-    color: "#64748B",
+    color: "#6B7280",
     fontSize: 13,
     lineHeight: 18,
     marginTop: 2,
+    fontFamily: "Inter",
   },
   actions: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 16,
+    marginTop: 18,
     flexWrap: "wrap",
   },
   primaryButton: {
-    backgroundColor: "#0F172A",
-    borderRadius: 16,
+    backgroundColor: "rgba(13, 13, 13, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    // Glass shimmer effect
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
   },
   primaryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
+    color: "#1A1C22",
+    fontWeight: "700",
+    fontFamily: "InterBold",
   },
   secondaryButton: {
-    backgroundColor: "#E0F2FE",
-    borderRadius: 16,
+    backgroundColor: "transparent",
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.05)",
   },
   secondaryButtonText: {
-    color: "#0C4A6E",
-    fontWeight: "800",
+    color: "#6B7280",
+    fontWeight: "600",
+    fontFamily: "InterSemiBold",
   },
 });

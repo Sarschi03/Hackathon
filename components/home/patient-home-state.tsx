@@ -119,15 +119,65 @@ function VitalCard({
   iconSource: any;
 }) {
   const scaleAnim = useRef(new Animated.Value(0.96)).current;
+  const barWidth = useRef(new Animated.Value(1)).current;
+  const barColor = useRef(new Animated.Value(0)).current;
+
+  const numericValue = typeof value === "string" ? parseFloat(value) : value;
+
+  const isAlert = useMemo(() => {
+    if (!label) return false;
+    const lowerLabel = label.toLowerCase();
+    
+    // Pulse (BPM): 60-100 normal
+    if (lowerLabel.includes("pulse") || lowerLabel.includes("puls")) {
+      return numericValue < 60 || numericValue > 100;
+    }
+    // SpO2: 95-100 normal
+    if (lowerLabel.includes("oxygen") || lowerLabel.includes("kisik")) {
+      return numericValue < 95;
+    }
+    // Pressure: Systolic 90-140 normal
+    if (lowerLabel.includes("pressure") || lowerLabel.includes("tlak")) {
+      const systolic = typeof value === "string" ? parseInt(value.split("/")[0]) : 120;
+      return systolic < 90 || systolic > 140;
+    }
+    // Respiratory: 12-20 normal
+    if (lowerLabel.includes("respiratory") || lowerLabel.includes("dihanje")) {
+      return numericValue < 12 || numericValue > 22;
+    }
+    return false;
+  }, [label, numericValue, value]);
 
   useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 8,
-    }).start();
-  }, [scaleAnim]);
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 8,
+      }),
+      Animated.timing(barWidth, {
+        toValue: isAlert ? 0.7 : 1,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+      Animated.timing(barColor, {
+        toValue: isAlert ? 1 : 0,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [isAlert, scaleAnim, barWidth, barColor]);
+
+  const animatedBarColor = useMemo(() => barColor.interpolate({
+    inputRange: [0, 1],
+    outputRange: [accentColor === "#a5a5a5ff" ? "#4FACFE" : accentColor, "#FF4B4B"],
+  }), [barColor, accentColor]);
+
+  const animatedBarWidth = useMemo(() => barWidth.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0%", "100%"]
+  }), [barWidth]);
 
   return (
     <Animated.View style={[styles.vitalCard, { transform: [{ scale: scaleAnim }] }]}>
@@ -137,14 +187,17 @@ function VitalCard({
           <Text style={styles.vitalCardLabel}>{label}</Text>
         </View>
         <View style={styles.vitalCardValueRow}>
-          <Text style={styles.vitalCardValue}>{value}</Text>
+          <Text style={styles.vitalCardValue}>{value || "-"}</Text>
           <Text style={styles.vitalCardUnit}>{unit}</Text>
         </View>
-        <View style={[styles.vitalCardBar, { backgroundColor: `${accentColor}30` }]}>
-          <View
+        <View style={[styles.vitalCardBar, { backgroundColor: isAlert ? "#FF4B4B20" : "#E5E7EB" }]}>
+          <Animated.View
             style={[
               styles.vitalCardBarFill,
-              { backgroundColor: accentColor, width: "68%" },
+              { 
+                backgroundColor: animatedBarColor,
+                width: animatedBarWidth,
+              },
             ]}
           />
         </View>
@@ -229,6 +282,8 @@ export function PatientHomeState({
     [vitals.diastolic, vitals.systolic],
   );
 
+  const { heartRate, bloodOxygen, respiratoryRate } = vitals;
+
   return (
     <View style={styles.container}>
       <View style={styles.sosContainer}>
@@ -288,28 +343,28 @@ export function PatientHomeState({
       <View style={styles.vitalsGrid}>
         <VitalCard
           label={t('home_pulse')}
-          value={vitals.heartRate?.toString() ?? "98"}
+          value={heartRate}
           unit="bpm"
           accentColor="#a5a5a5ff"
           iconSource={require("../../assets/images/icon.png")}
         />
         <VitalCard
           label={t('home_blood_oxygen')}
-          value={vitals.bloodOxygen?.toString() ?? "98"}
+          value={bloodOxygen}
           unit="SpO2%"
           accentColor="#a5a5a5ff"
           iconSource={require("../../assets/images/icon_blood.png")}
         />
         <VitalCard
           label={t('home_blood_pressure')}
-          value={pressure ?? "118/70"}
+          value={pressure}
           unit="mmHg"
           accentColor="#a5a5a5ff"
           iconSource={require("../../assets/images/icon_pressure.png")}
         />
         <VitalCard
           label={t('home_respiratory')}
-          value={vitals.respiratoryRate?.toString() ?? "16"}
+          value={respiratoryRate}
           unit="bpm"
           accentColor="#a5a5a5ff"
           iconSource={require("../../assets/images/icon_blood.png")}

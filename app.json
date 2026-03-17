@@ -4,19 +4,24 @@
     "slug": "Hackathon",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/map.png",
+    "icon": "./assets/images/image.png",
     "scheme": "hackathon",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/image.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/map.png",
-        "backgroundImage": "./assets/images/map.png",
-        "monochromeImage": "./assets/images/map.png"
+        "foregroundImage": "./assets/images/image.png",
+        "backgroundImage": "./assets/images/image.png",
+        "monochromeImage": "./assets/images/image.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -28,7 +33,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/map.png"
+      "favicon": "./assets/images/image.png"
     },
     "plugins": [
       "expo-router",
@@ -36,7 +41,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/map.png",
+          "image": "./assets/images/image.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

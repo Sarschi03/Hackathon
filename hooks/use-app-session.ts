@@ -16,6 +16,7 @@ type SessionContextValue = {
   viewer: any;
   currentRole: "citizen" | "responder" | null;
   isAuthenticated: boolean;
+  logout: () => Promise<void>;
 };
 
 const AppSessionContext = createContext<SessionContextValue | null>(null);
@@ -111,6 +112,18 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
     void persistAuthenticatedSession();
   }, [sessionToken, viewer]);
 
+  const logout = async () => {
+    await Promise.all([
+      AsyncStorage.removeItem(AUTH_SESSION_STORAGE_KEY),
+      AsyncStorage.removeItem(DEVICE_SESSION_STORAGE_KEY),
+      AsyncStorage.removeItem(SESSION_POOL_STORAGE_KEY),
+    ]);
+    setSessionToken(null);
+    setIsReady(false);
+    initializedRef.current = false;
+    // The useEffect will trigger and re-resolve a new guest session
+  };
+
   const value = useMemo(
     () => ({
       sessionToken,
@@ -118,6 +131,7 @@ export function AppSessionProvider({ children }: { children: React.ReactNode }) 
       viewer,
       currentRole: viewer?.currentRole ?? null,
       isAuthenticated: Boolean(viewer?.isAuthenticated),
+      logout,
     }),
     [isReady, sessionToken, viewer],
   );
