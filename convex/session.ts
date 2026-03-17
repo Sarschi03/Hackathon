@@ -59,10 +59,88 @@ async function getResponderProfileByUserId(db: any, userId: any) {
 }
 
 async function getPasswordCredentialByEmail(db: any, emailLower: string) {
-  return await db
+  const credentials = await db
     .query("passwordCredentials")
     .withIndex("by_emailLower", (q: any) => q.eq("emailLower", emailLower))
-    .unique();
+    .collect();
+
+  return credentials.sort((a: any, b: any) => b.updatedAt - a.updatedAt)[0] ?? null;
+}
+
+async function getPasswordCredentialsByUserId(db: any, userId: any) {
+  const credentials = await db
+    .query("passwordCredentials")
+    .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+    .collect();
+
+  return credentials.sort((a: any, b: any) => b.updatedAt - a.updatedAt);
+}
+
+async function deleteDuplicateCredentials(
+  db: any,
+  credentials: any[],
+  keepId: any,
+) {
+  for (const credential of credentials) {
+    if (String(credential._id) !== String(keepId)) {
+      await db.delete(credential._id);
+    }
+  }
+}
+
+async function upsertPasswordCredential(
+  db: any,
+  userId: any,
+  emailLower: string,
+  password: string,
+  now: number,
+) {
+  const existingByEmail = await db
+    .query("passwordCredentials")
+    .withIndex("by_emailLower", (q: any) => q.eq("emailLower", emailLower))
+    .collect();
+  const existingForUser = await getPasswordCredentialsByUserId(db, userId);
+  const merged = [...existingByEmail, ...existingForUser];
+  const deduped = Array.from(
+    new Map(merged.map((credential: any) => [String(credential._id), credential])).values(),
+  ).sort((a: any, b: any) => b.updatedAt - a.updatedAt);
+
+  const passwordSalt = crypto.randomUUID();
+  const passwordHash = await hashPassword(password, passwordSalt);
+
+  if (deduped.length > 0) {
+    const primary = deduped[0];
+    await db.patch(primary._id, {
+      userId,
+      emailLower,
+      passwordHash,
+      passwordSalt,
+      updatedAt: now,
+    });
+    await deleteDuplicateCredentials(db, deduped, primary._id);
+    return await db.get(primary._id);
+  }
+
+  const credentialId = await db.insert("passwordCredentials", {
+    userId,
+    emailLower,
+    passwordHash,
+    passwordSalt,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return await db.get(credentialId);
+}
+
+async function cleanUpCredentialsForUser(db: any, userId: any) {
+  const credentials = await getPasswordCredentialsByUserId(db, userId);
+  if (credentials.length <= 1) {
+    return credentials[0] ?? null;
+  }
+
+  const primary = credentials[0];
+  await deleteDuplicateCredentials(db, credentials, primary._id);
+  return primary;
 }
 
 async function ensureProfile(db: any, userId: any, now: number) {
@@ -116,25 +194,6 @@ async function getUserBySessionToken(db: any, sessionToken: string) {
   return { session, user };
 }
 
-async function createPasswordCredential(
-  db: any,
-  userId: any,
-  emailLower: string,
-  password: string,
-  now: number,
-) {
-  const passwordSalt = crypto.randomUUID();
-  const passwordHash = await hashPassword(password, passwordSalt);
-  return await db.insert("passwordCredentials", {
-    userId,
-    emailLower,
-    passwordHash,
-    passwordSalt,
-    createdAt: now,
-    updatedAt: now,
-  });
-}
-
 async function buildViewer(db: any, sessionToken: string) {
   const session = await getSession(db, sessionToken);
   if (!session) {
@@ -145,10 +204,7 @@ async function buildViewer(db: any, sessionToken: string) {
     db.get(session.userId),
     getProfileByUserId(db, session.userId),
     getResponderProfileByUserId(db, session.userId),
-    db
-      .query("passwordCredentials")
-      .withIndex("by_userId", (q: any) => q.eq("userId", session.userId))
-      .unique(),
+    cleanUpCredentialsForUser(db, session.userId),
   ]);
 
   if (!user) {
@@ -240,9 +296,7 @@ export const signUp = mutation({
       updatedAt: now,
     });
 
-    if (!existingCredential) {
-      await createPasswordCredential(ctx.db, user._id, emailLower, args.password, now);
-    }
+    await upsertPasswordCredential(ctx.db, user._id, emailLower, args.password, now);
 
     if (args.role === "responder") {
       await ensureResponderProfile(ctx.db, user._id, now);

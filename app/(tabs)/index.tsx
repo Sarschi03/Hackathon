@@ -17,6 +17,7 @@ import { PatientHomeState } from "@/components/home/patient-home-state";
 import { ResponderAlertList } from "@/components/home/responder-alert-list";
 import { ResponderAvailabilityCard } from "@/components/home/responder-availability-card";
 import { useAppSession } from "@/hooks/use-app-session";
+import { useDemoVitals } from "@/hooks/use-demo-vitals";
 import { useHealthConnect } from "@/hooks/use-health-connect";
 
 import { useLocalization } from "@/hooks/use-localization";
@@ -45,13 +46,13 @@ export default function HomeScreen() {
   const { t } = useLocalization();
   const { sessionToken, isReady, viewer, currentRole, isAuthenticated } = useAppSession();
   const { heartRate, bloodOxygen } = useHealthConnect();
+  const vitals = useDemoVitals({
+    baselineHeartRate: heartRate,
+    baselineBloodOxygen: bloodOxygen,
+  });
 
   const activeIncident = useQuery(
     api.incidents.getActiveIncidentForViewer,
-    sessionToken && currentRole === "citizen" ? { sessionToken } : "skip",
-  );
-  const contacts = useQuery(
-    api.contacts.listMyContacts,
     sessionToken && currentRole === "citizen" ? { sessionToken } : "skip",
   );
   const responderProfile = useQuery(
@@ -83,8 +84,6 @@ export default function HomeScreen() {
     const fullName = viewerUser?.fullName ?? "Friend";
     return fullName.split(" ")[0];
   }, [viewerUser?.fullName]);
-
-  const contactsCount = contacts?.length ?? 0;
 
   useEffect(() => {
     if (!sessionToken || currentRole !== "responder") {
@@ -282,8 +281,7 @@ export default function HomeScreen() {
           <>
             <PatientHomeState
               firstName={firstName}
-              heartRate={heartRate}
-              bloodOxygen={bloodOxygen}
+              vitals={vitals}
               hasActiveIncident={Boolean(activeIncident?.incident)}
               isSubmitting={isSubmitting}
               onSosPress={() => void handleSosPress()}
