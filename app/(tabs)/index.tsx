@@ -5,8 +5,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -17,6 +17,7 @@ import { PatientHomeState } from "@/components/home/patient-home-state";
 import { ResponderAlertList } from "@/components/home/responder-alert-list";
 import { ResponderAvailabilityCard } from "@/components/home/responder-availability-card";
 import { useAppSession } from "@/hooks/use-app-session";
+import { useHealthConnect } from "@/hooks/use-health-connect";
 
 const FALLBACK_LOCATION = {
   latitude: 46.0569,
@@ -40,12 +41,10 @@ async function getCurrentCoordinates() {
 export default function HomeScreen() {
   const router = useRouter();
   const { sessionToken, isReady, viewer, currentRole, isAuthenticated } = useAppSession();
+  const { heartRate, bloodOxygen } = useHealthConnect();
+
   const activeIncident = useQuery(
     api.incidents.getActiveIncidentForViewer,
-    sessionToken && currentRole === "citizen" ? { sessionToken } : "skip",
-  );
-  const profile = useQuery(
-    api.profiles.getMyProfile,
     sessionToken && currentRole === "citizen" ? { sessionToken } : "skip",
   );
   const contacts = useQuery(
@@ -82,9 +81,6 @@ export default function HomeScreen() {
     return fullName.split(" ")[0];
   }, [viewerUser?.fullName]);
 
-  const hasMedicalProfile = Boolean(
-    profile?.bloodGroup || profile?.allergiesText || profile?.conditionsText || profile?.medicationsText,
-  );
   const contactsCount = contacts?.length ?? 0;
 
   useEffect(() => {
@@ -227,15 +223,15 @@ export default function HomeScreen() {
 
   if (!isReady || !viewer) {
     return (
-      <SafeAreaView style={styles.loadingScreen}>
+      <View style={styles.loadingScreen}>
         <ActivityIndicator />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.safeArea}>
         <View style={styles.authCard}>
           <Text style={styles.authEyebrow}>FirstLine demo</Text>
           <Text style={styles.authTitle}>Sign in before testing the end-to-end flow.</Text>
@@ -249,12 +245,13 @@ export default function HomeScreen() {
             Create account
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {currentRole === "responder" ? (
           <>
@@ -282,8 +279,8 @@ export default function HomeScreen() {
           <>
             <PatientHomeState
               firstName={firstName}
-              hasMedicalProfile={hasMedicalProfile}
-              contactsCount={contactsCount}
+              heartRate={heartRate}
+              bloodOxygen={bloodOxygen}
               hasActiveIncident={Boolean(activeIncident?.incident)}
               isSubmitting={isSubmitting}
               onSosPress={() => void handleSosPress()}
@@ -297,14 +294,14 @@ export default function HomeScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center" },
-  safeArea: { flex: 1, backgroundColor: "#EEF2F7" },
-  container: { padding: 20, paddingTop: 24, paddingBottom: 48 },
+  safeArea: { flex: 1, backgroundColor: "#F2F3F5" },
+  container: { paddingHorizontal: 20, paddingTop: 52, paddingBottom: 40 },
   authCard: {
     margin: 24,
     marginTop: 80,
@@ -319,6 +316,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1.4,
     marginBottom: 8,
+    fontFamily: "InterBold",
   },
   authTitle: {
     color: "#F9FAFB",
@@ -326,17 +324,20 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     lineHeight: 32,
     marginBottom: 10,
+    fontFamily: "InterBold",
   },
   authBody: {
     color: "#D1D5DB",
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 18,
+    fontFamily: "Inter",
   },
   authLink: {
     color: "#F9FAFB",
     fontSize: 15,
     fontWeight: "700",
     marginBottom: 10,
+    fontFamily: "InterBold",
   },
 });

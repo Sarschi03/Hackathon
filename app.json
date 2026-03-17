@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/map.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "minSdkVersion": 26
     },
     "web": {
       "output": "static",
@@ -27,6 +28,7 @@
     },
     "plugins": [
       "expo-router",
+      "react-native-health-connect",
       [
         "expo-splash-screen",
         {
