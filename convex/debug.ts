@@ -292,6 +292,51 @@ export const setResponderLocation = mutation({
   },
 });
 
+export const setUserLocation = mutation({
+  args: {
+    email: v.string(),
+    lat: v.number(),
+    lng: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getUserByEmail(ctx.db, args.email.trim());
+    if (!user) {
+      throw new Error("User not found.");
+    }
+
+    return await upsertLocation(ctx.db, user._id, args.lat, args.lng, "foreground");
+  },
+});
+
+export const moveNamedUsersToZurich = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const targets = [
+      { email: "zdrav@nik", lat: 47.3769, lng: 8.5417 },
+      { email: "sara.karakas1@gmail.com", lat: 47.3769, lng: 8.5417 },
+    ];
+
+    const updated = [];
+    for (const target of targets) {
+      const user = await getUserByEmail(ctx.db, target.email);
+      if (!user) {
+        continue;
+      }
+
+      const location = await upsertLocation(
+        ctx.db,
+        user._id,
+        target.lat,
+        target.lng,
+        "foreground",
+      );
+      updated.push({ email: target.email, location });
+    }
+
+    return updated;
+  },
+});
+
 export const createFakeWearableIncident = mutation({
   args: {
     patientEmail: v.optional(v.string()),

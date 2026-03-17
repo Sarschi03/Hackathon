@@ -1,6 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useLocalization } from "@/hooks/use-localization";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 
 export function ResponderAlertList({
   alerts,
@@ -19,6 +18,15 @@ export function ResponderAlertList({
   onMarkArrived: (assignmentId: string) => void;
   onMarkComplete: (assignmentId: string) => void;
 }) {
+  const openDirections = async (
+    lat: number,
+    lng: number,
+    travelMode: "walking" | "driving" = "driving",
+  ) => {
+    const mode = travelMode === "walking" ? "walking" : "driving";
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${mode}`;
+    await Linking.openURL(url);
+  };
   const { t } = useLocalization();
 
   return (
@@ -30,9 +38,22 @@ export function ResponderAlertList({
           <Text style={styles.assignmentMeta}>
             {activeAssignment.patientName} | {activeAssignment.assignment.etaLabel}
           </Text>
+          <Text style={styles.assignmentMeta}>
+            {activeAssignment.assignment.travelModeLabel || "Driving"} route guidance ready
+          </Text>
           <Text style={styles.assignmentMeta}>{activeAssignment.incidentLocationLabel}</Text>
           <SummaryBlock medicalSummary={activeAssignment.medicalSummary} />
           <View style={styles.actionRow}>
+            <SmallAction
+              label="Open route"
+              onPress={() =>
+                void openDirections(
+                  activeAssignment.incident.lat,
+                  activeAssignment.incident.lng,
+                  activeAssignment.assignment.travelMode,
+                )
+              }
+            />
             <SmallAction
               label={t("resp_btn_backup")}
               onPress={() => onRequestBackup(String(activeAssignment.assignment._id))}
@@ -62,6 +83,14 @@ export function ResponderAlertList({
             </Text>
             <SummaryBlock medicalSummary={alert.medicalSummary} />
             <View style={styles.actionRow}>
+              <SmallAction
+                label="Preview route"
+                secondary
+                onPress={() =>
+                  void openDirections(alert.incident.lat, alert.incident.lng, alert.travelMode)
+                }
+              />
+            
               <SmallAction label={t("resp_decline")} secondary onPress={() => onDecline(String(alert._id))} />
               <SmallAction label={t("resp_accept")} onPress={() => onAccept(String(alert._id))} />
             </View>

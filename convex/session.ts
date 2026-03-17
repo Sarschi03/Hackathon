@@ -288,7 +288,7 @@ export const signUp = mutation({
     }
 
     await ctx.db.patch(user._id, {
-      fullName: args.fullName.trim() || "FirstLine User",
+      fullName: args.fullName.trim() || "LifeLine User",
       email: args.email.trim(),
       role: args.role,
       currentRole: args.role,
