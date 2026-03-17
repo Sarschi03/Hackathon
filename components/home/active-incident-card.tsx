@@ -56,28 +56,33 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
     color: "#111827",
+    fontFamily: "InterBold",
   },
   severity: {
     color: "#B91C1C",
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1,
+    fontFamily: "InterBold",
   },
   status: {
     fontSize: 20,
     fontWeight: "700",
     color: "#111827",
     marginBottom: 6,
+    fontFamily: "InterBold",
   },
   location: {
     fontSize: 14,
     color: "#374151",
     marginBottom: 8,
+    fontFamily: "Inter",
   },
   meta: {
     fontSize: 13,
     lineHeight: 19,
     color: "#6B7280",
+    fontFamily: "Inter",
   },
   assignmentBox: {
     backgroundColor: "#F3F4F6",
@@ -91,16 +96,19 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     color: "#6B7280",
     marginBottom: 6,
+    fontFamily: "InterBold",
   },
   assignmentBody: {
     fontSize: 15,
     fontWeight: "700",
     color: "#111827",
+    fontFamily: "InterBold",
   },
   assignmentMeta: {
     fontSize: 13,
     color: "#4B5563",
     marginTop: 4,
+    fontFamily: "Inter",
   },
   cancelButton: {
     marginTop: 16,
@@ -113,5 +121,6 @@ const styles = StyleSheet.create({
   cancelText: {
     color: "#FFFFFF",
     fontWeight: "700",
+    fontFamily: "InterBold",
   },
 });

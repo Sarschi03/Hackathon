@@ -1,0 +1,18 @@
+﻿--- ERROR MESSAGE ---
+Unable to resolve module ./index from C:\Sara\Migracija\Projekti\Hackathon/.: 
+
+None of these files exist:
+  * index(.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.mjs|.native.mjs|.mjs|.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.cjs|.native.cjs|.cjs|.android.scss|.native.scss|.scss|.android.sass|.native.sass|.sass|.android.css|.native.css|.css)
+  * index
+--- ERROR STACK ---
+Error: Unable to resolve module ./index from C:\Sara\Migracija\Projekti\Hackathon/.: 
+
+None of these files exist:
+  * index(.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.mjs|.native.mjs|.mjs|.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.cjs|.native.cjs|.cjs|.android.scss|.native.scss|.scss|.android.sass|.native.sass|.sass|.android.css|.native.css|.css)
+  * index
+    at ModuleResolver.resolveDependency (C:\Sara\Migracija\Projekti\Hackathon\node_modules\metro\src\node-haste\DependencyGraph\ModuleResolution.js:136:15)
+    at DependencyGraph.resolveDependency (C:\Sara\Migracija\Projekti\Hackathon\node_modules\metro\src\node-haste\DependencyGraph.js:252:43)
+    at C:\Sara\Migracija\Projekti\Hackathon\node_modules\metro\src\lib\transformHelpers.js:163:21
+    at Server._resolveRelativePath (C:\Sara\Migracija\Projekti\Hackathon\node_modules\metro\src\Server.js:1259:12)
+    at Server.requestProcessor [as _processBundleRequest] (C:\Sara\Migracija\Projekti\Hackathon\node_modules\metro\src\Server.js:621:33)
+    at Server._processRequest (C:\Sara\Migracija\Projekti\Hackathon\node_modules\metro\src\Server.js:503:7)
