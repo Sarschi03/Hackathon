@@ -1,13 +1,13 @@
-# FirstLine
+# LifeLine
 
-FirstLine is a hackathon prototype for ultra-fast community emergency response. It helps a patient trigger an incident manually or from a wearable-like signal, shares critical medical context, and dispatches the nearest qualified responder using ETA-based escalation before an ambulance arrives.
+LifeLine is a hackathon prototype for ultra-fast community emergency response. It helps a patient trigger an incident manually or from a wearable-like signal, share critical medical context, and dispatch the fastest qualified responder before an ambulance arrives.
 
 ## What the prototype covers
 
 - Patient flow with manual SOS and simulated wearable-triggered emergency escalation
 - Responder flow with credential submission, demo verification, availability control, and assignment handling
 - Convex-backed real-time incident state, responder matching, timeline logging, and emergency profile sharing
-- Distance-aware dispatch logic that expands from the fastest ETA cohort outward
+- ETA-ranked dispatch logic that expands from the fastest responder outward
 
 ## Stack
 
@@ -145,7 +145,7 @@ The app ranks responders by fastest predicted arrival, not by nearest crow-flies
 6. If they do not respond within the timeout window, notify the next-fastest responder.
 7. Continue until one accepts or the queue is exhausted.
 
-This effectively simulates staged expansion from the immediate responder pool outward while still optimizing for true arrival time.
+This simulates staged expansion from the immediate responder pool outward while still optimizing for real arrival time.
 
 ## Prototype assumptions
 

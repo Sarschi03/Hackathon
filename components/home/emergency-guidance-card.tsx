@@ -9,11 +9,7 @@ type EmergencyGuidanceCardProps = {
   onTriggerWearable: () => void;
 };
 
-const GUIDANCE_STEPS = [
-  "Call 144 and confirm the exact floor or entrance for responders.",
-  "Start CPR immediately if the patient is unresponsive and not breathing normally.",
-  "Send one person to look for an AED while another stays with the patient.",
-];
+import { useLocalization } from "@/hooks/use-localization";
 
 export function EmergencyGuidanceCard({
   hasActiveIncident,
@@ -21,17 +17,25 @@ export function EmergencyGuidanceCard({
   vitals,
   onTriggerWearable,
 }: EmergencyGuidanceCardProps) {
+  const { t } = useLocalization();
+
+  const GUIDANCE_STEPS = [
+    t("guidance_step_1"),
+    t("guidance_step_2"),
+    t("guidance_step_3"),
+  ];
+
   const riskLabel =
-    vitals.heartRate > 108 || vitals.bloodOxygen < 95 ? "Elevated" : "Stable";
+    vitals.heartRate > 108 || vitals.bloodOxygen < 95 ? t("guidance_risk_elevated") : t("guidance_risk_stable");
 
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>Guided response</Text>
-          <Text style={styles.title}>What happens in the first minute</Text>
+          <Text style={styles.eyebrow}>{t("guidance_eyebrow")}</Text>
+          <Text style={styles.title}>{t("guidance_title")}</Text>
         </View>
-        <View style={[styles.riskChip, riskLabel === "Elevated" && styles.riskChipAlert]}>
+        <View style={[styles.riskChip, riskLabel === t("guidance_risk_elevated") && styles.riskChipAlert]}>
           <Text style={styles.riskChipText}>{riskLabel}</Text>
         </View>
       </View>
@@ -47,9 +51,9 @@ export function EmergencyGuidanceCard({
 
       <View style={styles.footer}>
         <View>
-          <Text style={styles.footerLabel}>Wearable trigger</Text>
+          <Text style={styles.footerLabel}>{t("guidance_footer_label")}</Text>
           <Text style={styles.footerBody}>
-            Simulate an automatic emergency escalation with live vitals attached.
+            {t("guidance_footer_body")}
           </Text>
         </View>
         <Pressable
@@ -58,7 +62,7 @@ export function EmergencyGuidanceCard({
           disabled={hasActiveIncident || isTriggeringWearable}
         >
           <Text style={styles.footerButtonText}>
-            {isTriggeringWearable ? "Sending..." : "Simulate"}
+            {isTriggeringWearable ? t("guidance_btn_sending") : t("guidance_btn_simulate")}
           </Text>
         </Pressable>
       </View>

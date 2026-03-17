@@ -3,9 +3,12 @@ import { useMutation, useQuery } from "convex/react";
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 
-const DEVICE_SESSION_STORAGE_KEY = "firstline-device-session-token";
-const AUTH_SESSION_STORAGE_KEY = "firstline-auth-session-token";
-const SESSION_POOL_STORAGE_KEY = "firstline-session-token-pool";
+const DEVICE_SESSION_STORAGE_KEY = "lifeline-device-session-token";
+const AUTH_SESSION_STORAGE_KEY = "lifeline-auth-session-token";
+const SESSION_POOL_STORAGE_KEY = "lifeline-session-token-pool";
+const LEGACY_DEVICE_SESSION_STORAGE_KEY = "firstline-device-session-token";
+const LEGACY_AUTH_SESSION_STORAGE_KEY = "firstline-auth-session-token";
+const LEGACY_SESSION_POOL_STORAGE_KEY = "firstline-session-token-pool";
 
 type SessionContextValue = {
   sessionToken: string | null;
@@ -23,23 +26,31 @@ function createSessionToken(prefix: string) {
 }
 
 async function appendSessionToPool(sessionToken: string) {
-  const stored = await AsyncStorage.getItem(SESSION_POOL_STORAGE_KEY);
+  const stored =
+    (await AsyncStorage.getItem(SESSION_POOL_STORAGE_KEY)) ??
+    (await AsyncStorage.getItem(LEGACY_SESSION_POOL_STORAGE_KEY));
   const pool = stored ? (JSON.parse(stored) as string[]) : [];
   const nextPool = [sessionToken, ...pool.filter((token) => token !== sessionToken)].slice(0, 5);
   await AsyncStorage.setItem(SESSION_POOL_STORAGE_KEY, JSON.stringify(nextPool));
 }
 
 async function resolveSessionToken() {
-  const [authToken, deviceToken, poolRaw] = await Promise.all([
+  const [authToken, deviceToken, poolRaw, legacyAuthToken, legacyDeviceToken, legacyPoolRaw] = await Promise.all([
     AsyncStorage.getItem(AUTH_SESSION_STORAGE_KEY),
     AsyncStorage.getItem(DEVICE_SESSION_STORAGE_KEY),
     AsyncStorage.getItem(SESSION_POOL_STORAGE_KEY),
+    AsyncStorage.getItem(LEGACY_AUTH_SESSION_STORAGE_KEY),
+    AsyncStorage.getItem(LEGACY_DEVICE_SESSION_STORAGE_KEY),
+    AsyncStorage.getItem(LEGACY_SESSION_POOL_STORAGE_KEY),
   ]);
 
-  const pool = poolRaw ? (JSON.parse(poolRaw) as string[]) : [];
+  const poolSource = poolRaw ?? legacyPoolRaw;
+  const pool = poolSource ? (JSON.parse(poolSource) as string[]) : [];
   const nextToken =
     authToken ??
+    legacyAuthToken ??
     deviceToken ??
+    legacyDeviceToken ??
     pool[0] ??
     createSessionToken("session");
 

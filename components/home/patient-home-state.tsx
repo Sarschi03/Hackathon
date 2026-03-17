@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   Easing,
   Image,
   Pressable,
@@ -14,8 +13,6 @@ import {
 import Svg, { Line, Path } from "react-native-svg";
 
 import { useLocalization } from "@/hooks/use-localization";
-
-const { width } = Dimensions.get("window");
 
 const ECG_STRIP_PATH = [
   "M 0 58",
@@ -308,9 +305,9 @@ export function PatientHomeState({
                 <ActivityIndicator color="#FFFFFF" size="large" />
               ) : (
                 <>
-                  <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : "SOS!"}</Text>
+                  <Text style={styles.sosText}>{hasActiveIncident ? t('btn_cancel').toUpperCase() : `${t('home_sos')}!`}</Text>
                   {!hasActiveIncident ? (
-                    <Text style={styles.sosSubtext}>Deep press to activate!</Text>
+                    <Text style={styles.sosSubtext}>{t('home_sos_subtext')}</Text>
                   ) : null}
                 </>
               )}
