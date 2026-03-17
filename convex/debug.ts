@@ -34,11 +34,28 @@ async function ensureCredential(db: any, userId: any, email: string, password: s
   const existing = await db
     .query("passwordCredentials")
     .withIndex("by_emailLower", (q: any) => q.eq("emailLower", emailLower))
-    .unique();
+    .collect();
 
-  if (existing) {
-    await db.patch(existing._id, { userId, updatedAt: now });
-    return existing._id;
+  const existingForUser = await db
+    .query("passwordCredentials")
+    .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+    .collect();
+  const merged = Array.from(
+    new Map(
+      [...existing, ...existingForUser].map((credential: any) => [
+        String(credential._id),
+        credential,
+      ]),
+    ).values(),
+  ).sort((a: any, b: any) => b.updatedAt - a.updatedAt);
+
+  if (merged.length > 0) {
+    const primary = merged[0];
+    await db.patch(primary._id, { userId, emailLower, updatedAt: now });
+    for (const duplicate of merged.slice(1)) {
+      await db.delete(duplicate._id);
+    }
+    return primary._id;
   }
 
   const passwordSalt = crypto.randomUUID();

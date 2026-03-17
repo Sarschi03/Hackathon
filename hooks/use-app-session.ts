@@ -1,21 +1,56 @@
-// @ts-nocheck
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMutation, useQuery } from "convex/react";
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 
-const SESSION_STORAGE_KEY = "firstline-session-token";
+const DEVICE_SESSION_STORAGE_KEY = "firstline-device-session-token";
+const AUTH_SESSION_STORAGE_KEY = "firstline-auth-session-token";
+const SESSION_POOL_STORAGE_KEY = "firstline-session-token-pool";
 
-const AppSessionContext = createContext(null);
+type SessionContextValue = {
+  sessionToken: string | null;
+  isReady: boolean;
+  viewer: any;
+  currentRole: "citizen" | "responder" | null;
+  isAuthenticated: boolean;
+};
 
-function createSessionToken() {
-  return `session_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+const AppSessionContext = createContext<SessionContextValue | null>(null);
+
+function createSessionToken(prefix: string) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
 }
 
-export function AppSessionProvider(props) {
-  const { children } = props;
-  const [sessionToken, setSessionToken] = useState(null);
+async function appendSessionToPool(sessionToken: string) {
+  const stored = await AsyncStorage.getItem(SESSION_POOL_STORAGE_KEY);
+  const pool = stored ? (JSON.parse(stored) as string[]) : [];
+  const nextPool = [sessionToken, ...pool.filter((token) => token !== sessionToken)].slice(0, 5);
+  await AsyncStorage.setItem(SESSION_POOL_STORAGE_KEY, JSON.stringify(nextPool));
+}
+
+async function resolveSessionToken() {
+  const [authToken, deviceToken, poolRaw] = await Promise.all([
+    AsyncStorage.getItem(AUTH_SESSION_STORAGE_KEY),
+    AsyncStorage.getItem(DEVICE_SESSION_STORAGE_KEY),
+    AsyncStorage.getItem(SESSION_POOL_STORAGE_KEY),
+  ]);
+
+  const pool = poolRaw ? (JSON.parse(poolRaw) as string[]) : [];
+  const nextToken =
+    authToken ??
+    deviceToken ??
+    pool[0] ??
+    createSessionToken("session");
+
+  await AsyncStorage.setItem(DEVICE_SESSION_STORAGE_KEY, nextToken);
+  await appendSessionToPool(nextToken);
+  return nextToken;
+}
+
+export function AppSessionProvider({ children }: { children: React.ReactNode }) {
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const initializedRef = useRef(false);
   const bootstrap = useMutation(api.session.bootstrap);
   const viewer = useQuery(
     api.session.getViewer,
@@ -23,14 +58,14 @@ export function AppSessionProvider(props) {
   );
 
   useEffect(() => {
+    if (initializedRef.current) {
+      return;
+    }
+    initializedRef.current = true;
     let active = true;
 
     async function ensureSession() {
-      const stored = await AsyncStorage.getItem(SESSION_STORAGE_KEY);
-      const nextToken = stored ?? createSessionToken();
-      if (!stored) {
-        await AsyncStorage.setItem(SESSION_STORAGE_KEY, nextToken);
-      }
+      const nextToken = await resolveSessionToken();
       if (!active) {
         return;
       }
@@ -47,6 +82,23 @@ export function AppSessionProvider(props) {
       active = false;
     };
   }, [bootstrap]);
+
+  useEffect(() => {
+    if (!sessionToken || viewer === undefined) {
+      return;
+    }
+    const stableSessionToken = sessionToken;
+
+    async function persistAuthenticatedSession() {
+      await AsyncStorage.setItem(DEVICE_SESSION_STORAGE_KEY, stableSessionToken);
+      await appendSessionToPool(stableSessionToken);
+      if (viewer?.isAuthenticated) {
+        await AsyncStorage.setItem(AUTH_SESSION_STORAGE_KEY, stableSessionToken);
+      }
+    }
+
+    void persistAuthenticatedSession();
+  }, [sessionToken, viewer]);
 
   const value = useMemo(
     () => ({

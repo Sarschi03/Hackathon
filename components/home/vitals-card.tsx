@@ -46,7 +46,7 @@ const EkgGraph = () => (
 );
 
 export function VitalsCard() {
-  const { heartRate, bloodOxygen, isAvailable, isLoading, lastUpdated } = useHealthConnect();
+  const { heartRate, bloodOxygen, isAvailable } = useHealthConnect();
 
   const hrValue = heartRate != null ? heartRate : 98; // Fallback to 98 if no data yet (mockup use case)
   const spo2Value = bloodOxygen != null ? bloodOxygen : 98;

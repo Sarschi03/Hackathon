@@ -1,68 +1,118 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import Svg, { Line, Path } from "react-native-svg";
+import type { DemoVitalsState } from "@/hooks/use-demo-vitals";
 
 const { width } = Dimensions.get("window");
 
-// --- EKG Line (View-based approximation as per user snippet) ---
-const EKGLine: React.FC = () => {
+const ECG_STRIP_PATH = [
+  "M 0 58",
+  "C 8 58, 12 58, 20 58",
+  "C 24 58, 28 54, 34 54",
+  "C 38 54, 42 58, 48 58",
+  "C 56 58, 64 58, 72 58",
+  "L 78 60",
+  "L 84 34",
+  "L 90 70",
+  "L 96 18",
+  "L 103 84",
+  "L 110 58",
+  "C 120 58, 132 58, 144 58",
+  "C 154 58, 162 56, 170 56",
+  "C 180 56, 188 64, 200 64",
+  "C 214 64, 226 58, 240 58",
+  "C 252 58, 266 58, 280 58",
+].join(" ");
+
+function HeartIcon({ color = "#4BAEE8" }: { color?: string }) {
   return (
-    <View style={styles.ekgContainer}>
-      <View style={styles.ekgLineWrapper}>
-        <View style={[styles.ekgSegment, { width: 40 }]} />
-        <View style={[styles.ekgPeak, { height: 14, marginBottom: 14 }]} />
-        <View style={[styles.ekgSegment, { width: 6 }]} />
-        <View style={[styles.ekgDip, { height: 8, marginTop: 8 }]} />
-        <View style={[styles.ekgSegment, { width: 4 }]} />
-        <View style={[styles.ekgPeak, { height: 30, marginBottom: 30 }]} />
-        <View style={[styles.ekgSegment, { width: 4 }]} />
-        <View style={[styles.ekgDip, { height: 12, marginTop: 12 }]} />
-        <View style={[styles.ekgSegment, { width: 10 }]} />
-        <View style={[styles.ekgPeak, { height: 8, marginBottom: 8 }]} />
-        <View style={[styles.ekgSegment, { width: 6 }]} />
-        <View style={[styles.ekgDip, { height: 5, marginTop: 5 }]} />
-        <View style={[styles.ekgSegment, { width: 40 }]} />
-        <View style={[styles.ekgPeak, { height: 14, marginBottom: 14 }]} />
-        <View style={[styles.ekgSegment, { width: 6 }]} />
-        <View style={[styles.ekgDip, { height: 8, marginTop: 8 }]} />
-        <View style={[styles.ekgSegment, { width: 4 }]} />
-        <View style={[styles.ekgPeak, { height: 30, marginBottom: 30 }]} />
-        <View style={[styles.ekgSegment, { width: 4 }]} />
-        <View style={[styles.ekgDip, { height: 12, marginTop: 12 }]} />
-        <View style={[styles.ekgSegment, { width: 10 }]} />
-        <View style={[styles.ekgPeak, { height: 8, marginBottom: 8 }]} />
-        <View style={[styles.ekgSegment, { width: 6 }]} />
-        <View style={[styles.ekgDip, { height: 5, marginTop: 5 }]} />
-        <View style={[styles.ekgSegment, { width: 40 }]} />
-      </View>
+    <View style={[styles.heartIconWrapper, { backgroundColor: `${color}20` }]}>
+      <Text style={[styles.heartIconText, { color }]}>♥</Text>
     </View>
   );
-};
+}
 
-// --- Heart Icon ---
-const HeartIcon: React.FC<{ color?: string }> = ({ color = "#4BAEE8" }) => (
-  <View style={[styles.heartIconWrapper, { backgroundColor: color + "20" }]}>
-    <Text style={[styles.heartIconText, { color }]}>♥︎</Text>
-  </View>
-);
+function EcgLine() {
+  const sweep = useRef(new Animated.Value(0)).current;
 
-// --- Vital Card ---
-interface VitalCardProps {
+  useEffect(() => {
+    sweep.setValue(0);
+    const animation = Animated.loop(
+      Animated.timing(sweep, {
+        toValue: -280,
+        duration: 2400,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [sweep]);
+
+  return (
+    <View style={styles.ekgContainer}>
+      <View style={styles.ekgGrid}>
+        {Array.from({ length: 11 }).map((_, index) => (
+          <View key={`v-${index}`} style={[styles.gridColumn, { left: index * 28 }]} />
+        ))}
+        {Array.from({ length: 4 }).map((_, index) => (
+          <View key={`h-${index}`} style={[styles.gridRow, { top: 18 + index * 22 }]} />
+        ))}
+      </View>
+
+      <Animated.View
+        style={[
+          styles.waveTrack,
+          {
+            transform: [{ translateX: sweep }],
+          },
+        ]}
+      >
+        <EcgWave />
+        <EcgWave />
+        <EcgWave />
+      </Animated.View>
+    </View>
+  );
+}
+
+function EcgWave() {
+  return (
+    <Svg width={280} height={110} viewBox="0 0 280 110">
+      <Line x1="0" y1="58" x2="280" y2="58" stroke="#D9E0E7" strokeWidth="1.2" />
+      <Path
+        d={ECG_STRIP_PATH}
+        fill="none"
+        stroke="#4A5662"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function VitalCard({
+  label,
+  value,
+  unit,
+  accentColor,
+}: {
   label: string;
   value: string | number;
   unit: string;
   accentColor: string;
-}
-
-const VitalCard: React.FC<VitalCardProps> = ({ label, value, unit, accentColor }) => {
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+}) {
+  const scaleAnim = useRef(new Animated.Value(0.96)).current;
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
@@ -85,18 +135,22 @@ const VitalCard: React.FC<VitalCardProps> = ({ label, value, unit, accentColor }
           <Text style={styles.vitalCardValue}>{value}</Text>
           <Text style={styles.vitalCardUnit}>{unit}</Text>
         </View>
-        <View style={[styles.vitalCardBar, { backgroundColor: accentColor + "30" }]}>
-          <View style={[styles.vitalCardBarFill, { backgroundColor: accentColor, width: "65%" }]} />
+        <View style={[styles.vitalCardBar, { backgroundColor: `${accentColor}30` }]}>
+          <View
+            style={[
+              styles.vitalCardBarFill,
+              { backgroundColor: accentColor, width: "68%" },
+            ]}
+          />
         </View>
       </View>
     </Animated.View>
   );
-};
+}
 
 export type PatientHomeStateProps = {
   firstName: string;
-  heartRate: number | null;
-  bloodOxygen: number | null;
+  vitals: DemoVitalsState;
   hasActiveIncident: boolean;
   isSubmitting: boolean;
   onSosPress: () => void;
@@ -104,8 +158,7 @@ export type PatientHomeStateProps = {
 
 export function PatientHomeState({
   firstName,
-  heartRate,
-  bloodOxygen,
+  vitals,
   hasActiveIncident,
   isSubmitting,
   onSosPress,
@@ -128,7 +181,6 @@ export function PatientHomeState({
       }),
     ]).start();
 
-    // SOS pulse
     const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(sosScale, {
@@ -141,21 +193,27 @@ export function PatientHomeState({
           duration: 1200,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
     pulseLoop.start();
     return () => pulseLoop.stop();
   }, [fadeAnim, slideAnim, sosScale]);
 
+  const pressure = useMemo(
+    () => `${vitals.systolic}/${vitals.diastolic}`,
+    [vitals.diastolic, vitals.systolic],
+  );
+
   return (
     <View style={styles.container}>
-      {/* SOS Button */}
       <Animated.View style={{ transform: [{ scale: sosScale }], marginBottom: 28 }}>
         <Pressable
           style={[styles.sosButton, hasActiveIncident && styles.sosButtonActive]}
           onLongPress={onSosPress}
           onPress={() => {
-            if (hasActiveIncident) onSosPress();
+            if (hasActiveIncident) {
+              onSosPress();
+            }
           }}
           disabled={isSubmitting}
         >
@@ -165,16 +223,15 @@ export function PatientHomeState({
             ) : (
               <>
                 <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : "SOS!"}</Text>
-                {!hasActiveIncident && (
+                {!hasActiveIncident ? (
                   <Text style={styles.sosSubtext}>Hold to activate!</Text>
-                )}
+                ) : null}
               </>
             )}
           </View>
         </Pressable>
       </Animated.View>
 
-      {/* Greeting */}
       <Animated.View
         style={[
           styles.greetingBlock,
@@ -185,7 +242,6 @@ export function PatientHomeState({
         <Text style={styles.greetingTitle}>Check{"\n"}your Vitals!</Text>
       </Animated.View>
 
-      {/* EKG Card */}
       <Animated.View style={[styles.ekgCard, { opacity: fadeAnim }]}>
         <View style={[styles.ekgCardAccent, { backgroundColor: "#F5C09D" }]} />
         <View style={styles.ekgCardHeader}>
@@ -198,32 +254,31 @@ export function PatientHomeState({
             <Text style={styles.liveText}>Live</Text>
           </View>
         </View>
-        <EKGLine />
+        <EcgLine />
       </Animated.View>
 
-      {/* Vitals Grid */}
       <View style={styles.vitalsGrid}>
         <VitalCard
           label="Pulse"
-          value={heartRate ?? "98"}
+          value={vitals.heartRate}
           unit="br/min"
           accentColor="#4BAEE8"
         />
         <VitalCard
           label="Blood oxygen"
-          value={bloodOxygen ?? "98"}
+          value={vitals.bloodOxygen}
           unit="SpO2%"
           accentColor="#4BAEE8"
         />
         <VitalCard
           label="Blood Pressure"
-          value="118/70"
+          value={pressure}
           unit="mmHg"
           accentColor="#4BAEE8"
         />
         <VitalCard
           label="Respiratory rate"
-          value="16"
+          value={vitals.respiratoryRate}
           unit="br/min"
           accentColor="#4BAEE8"
         />
@@ -236,7 +291,6 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 10,
   },
-  // SOS
   sosButton: {
     borderRadius: 22,
     backgroundColor: "#F4A8A8",
@@ -268,8 +322,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     fontFamily: "Inter",
   },
-
-  // Greeting
   greetingBlock: {
     marginBottom: 40,
   },
@@ -287,8 +339,6 @@ const styles = StyleSheet.create({
     lineHeight: 40,
     fontFamily: "InterMedium",
   },
-
-  // EKG Card
   ekgCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
@@ -299,7 +349,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 2,
     height: 180,
-
   },
   ekgCardAccent: {
     height: 4,
@@ -345,8 +394,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     fontFamily: "Inter",
   },
-
-  // EKG Line
   ekgContainer: {
     height: 120,
     paddingHorizontal: 16,
@@ -354,34 +401,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  ekgLineWrapper: {
+  ekgGrid: {
+    ...StyleSheet.absoluteFillObject,
+    left: 16,
+    right: 16,
+    top: 10,
+    bottom: 18,
+  },
+  gridColumn: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: "#EEF2F6",
+  },
+  gridRow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "#EEF2F6",
+  },
+  waveTrack: {
     flexDirection: "row",
     alignItems: "center",
-    height: 50,
   },
-  ekgSegment: {
-    height: 2,
-    backgroundColor: "#555",
-  },
-  ekgPeak: {
-    width: 2,
-    backgroundColor: "#555",
-    alignSelf: "flex-end",
-  },
-  ekgDip: {
-    width: 2,
-    backgroundColor: "#555",
-    alignSelf: "flex-start",
-  },
-
-  // Vitals Grid
   vitalsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-
-  // Vital Card
   vitalCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 5,
@@ -391,7 +440,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.01,
     shadowRadius: 2,
-
   },
   vitalCardAccent: {
     height: 4,
@@ -442,8 +490,6 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 2,
   },
-
-  // Heart icon
   heartIconWrapper: {
     width: 27,
     height: 27,

@@ -8,13 +8,11 @@ import { useConsent } from '@/hooks/use-consent';
 import ConsentScreen from '@/app/consent-screen';
 import { AppConvexProvider } from '@/components/convex-provider';
 import { AppSessionProvider } from '@/hooks/use-app-session';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
-
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
   // The initial route is the onboarding splash
