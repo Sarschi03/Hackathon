@@ -1,7 +1,9 @@
+import { useLocalization } from '@/hooks/use-localization';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import {
   Dimensions,
+  Image,
   ImageBackground,
   Pressable,
   StatusBar,
@@ -9,7 +11,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useLocalization } from '@/hooks/use-localization';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,17 +31,21 @@ export default function OnboardingWelcome() {
 
         {/* Logo */}
         <View style={styles.logoWrapper}>
-          <View style={styles.logoBox} />
+          <Image
+            source={require('../assets/images/icon_white.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.logoText}>
-            <Text style={{ fontWeight: '300' }}>First</Text>
+            <Text style={{ fontWeight: '300' }}>Life</Text>
             <Text style={{ fontWeight: '700' }}>Line</Text>
           </Text>
         </View>
 
         {/* Bottom content */}
         <View style={styles.bottom}>
-          <Text style={styles.headline}>{t('home_emergency_help')}</Text>
-          <Text style={styles.body}>{t('onboarding_welcome')}</Text>
+          <Text style={styles.headline}>{t('onboarding_hero')}</Text>
+          <Text style={styles.body}>{t('onboarding_desc')}</Text>
 
           {/* Glass buttons row */}
           <View style={styles.buttonRow}>
@@ -82,17 +87,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 72,
   },
-  logoBox: {
-    width: 52,
-    height: 52,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 8,
-    marginBottom: 10,
+  logoImage: {
+    width: 120,
+    height: 120,
+    marginBottom: -30,
   },
   logoText: {
-    fontSize: 22,
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+    fontSize: 18,
+    color: '#747474ff',
+    letterSpacing: 0.8,
     fontFamily: 'Inter',
   },
   bottom: {
@@ -117,7 +120,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.78)',
     lineHeight: 24,
     textAlign: 'center',
-    marginBottom: 36,
+    marginBottom: 80,
     fontFamily: 'Inter',
   },
   buttonRow: {
@@ -127,7 +130,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   glassBtn: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(13, 13, 13, 0.18)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
     paddingHorizontal: 36,
@@ -137,6 +140,7 @@ const styles = StyleSheet.create({
     shadowColor: '#fff',
     shadowOpacity: 0.08,
     shadowRadius: 12,
+
   },
   glassBtnText: {
     color: '#FFFFFF',
@@ -149,7 +153,7 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rrgba(13, 13, 13, 0.18)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',

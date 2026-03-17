@@ -73,15 +73,15 @@ export default function RootLayout() {
   })();
 
   return (
-    <AppConvexProvider>
-      <AppSessionProvider>
-        <LocalizationProvider>
+    <LocalizationProvider>
+      <AppConvexProvider>
+        <AppSessionProvider>
           <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
             {content}
             <StatusBar style="auto" />
           </ThemeProvider>
-        </LocalizationProvider>
-      </AppSessionProvider>
-    </AppConvexProvider>
+        </AppSessionProvider>
+      </AppConvexProvider>
+    </LocalizationProvider>
   );
 }

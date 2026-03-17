@@ -235,7 +235,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.safeArea}>
         <View style={styles.authCard}>
-          <Text style={styles.authEyebrow}>FirstLine demo</Text>
+          <Text style={styles.authEyebrow}>LifeLine demo</Text>
           <Text style={styles.authTitle}>{t('home_emergency_help')}</Text>
           <Text style={styles.authBody}>
             Use a patient account for the SOS side or a responder account for dispatch.
