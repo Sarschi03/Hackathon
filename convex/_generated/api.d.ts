@@ -9,6 +9,7 @@
  */
 
 import type * as contacts from "../contacts.js";
+import type * as debug from "../debug.js";
 import type * as incidents from "../incidents.js";
 import type * as lib from "../lib.js";
 import type * as locations from "../locations.js";
@@ -24,6 +25,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
+  debug: typeof debug;
   incidents: typeof incidents;
   lib: typeof lib;
   locations: typeof locations;

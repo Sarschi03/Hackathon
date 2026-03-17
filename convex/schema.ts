@@ -9,6 +9,17 @@ export default defineSchema({
     lastSeenAt: v.number(),
   }).index("by_sessionToken", ["sessionToken"]),
 
+  passwordCredentials: defineTable({
+    userId: v.id("users"),
+    emailLower: v.string(),
+    passwordHash: v.string(),
+    passwordSalt: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_emailLower", ["emailLower"])
+    .index("by_userId", ["userId"]),
+
   users: defineTable({
     externalIdentity: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -18,6 +29,9 @@ export default defineSchema({
       v.literal("citizen"),
       v.literal("responder"),
       v.literal("dual"),
+    ),
+    currentRole: v.optional(
+      v.union(v.literal("citizen"), v.literal("responder")),
     ),
     status: v.union(v.literal("active"), v.literal("disabled")),
     onboardingComplete: v.boolean(),
@@ -210,6 +224,7 @@ export default defineSchema({
       v.literal("declined"),
       v.literal("timed_out"),
     ),
+    respondedAt: v.optional(v.number()),
     estimatedTravelSeconds: v.number(),
     travelMode: v.union(v.literal("walking")),
     routeProvider: v.union(
@@ -228,6 +243,9 @@ export default defineSchema({
     assignedAt: v.number(),
     etaSeconds: v.optional(v.number()),
     arrivalAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    backupRequestedAt: v.optional(v.number()),
+    statusUpdatedAt: v.optional(v.number()),
     status: v.union(
       v.literal("assigned"),
       v.literal("arrived"),

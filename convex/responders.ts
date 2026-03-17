@@ -1,6 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { makeEmergencySummary } from "./lib";
+import {
+  formatAssignmentStatus,
+  formatCoordinates,
+  formatEtaMinutes,
+  formatEtaStage,
+  makeEmergencySummary,
+} from "./lib";
 
 async function getViewer(db: any, sessionToken: string) {
   const session = await db
@@ -22,6 +28,48 @@ async function getResponderProfile(db: any, userId: any) {
     .query("responderProfiles")
     .withIndex("by_userId", (q: any) => q.eq("userId", userId))
     .unique();
+}
+
+async function addTimelineEvent(
+  db: any,
+  incidentId: any,
+  eventType: string,
+  message: string,
+  actorUserId?: any,
+  payload?: any,
+) {
+  await db.insert("incidentTimeline", {
+    incidentId,
+    eventType,
+    message,
+    actorUserId,
+    payload,
+    createdAt: Date.now(),
+  });
+}
+
+async function requireResponder(db: any, sessionToken: string) {
+  const viewer = await getViewer(db, sessionToken);
+  const responderProfile = await getResponderProfile(db, viewer.user._id);
+  if (!responderProfile) {
+    throw new Error("Responder profile not found.");
+  }
+  return { ...viewer, responderProfile };
+}
+
+async function getIncidentEmergencySummary(db: any, incident: any) {
+  const [profile, patient] = await Promise.all([
+    db
+      .query("profiles")
+      .withIndex("by_userId", (q: any) => q.eq("userId", incident.subjectUserId))
+      .unique(),
+    db.get(incident.subjectUserId),
+  ]);
+
+  return {
+    patientName: patient?.fullName ?? "Unknown patient",
+    medicalSummary: profile ? makeEmergencySummary(profile) : null,
+  };
 }
 
 export const getMyResponderProfile = query({
@@ -89,11 +137,7 @@ export const setAvailability = mutation({
     isAvailable: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const { user } = await getViewer(ctx.db, args.sessionToken);
-    const responderProfile = await getResponderProfile(ctx.db, user._id);
-    if (!responderProfile) {
-      throw new Error("Responder profile not found.");
-    }
+    const { responderProfile } = await requireResponder(ctx.db, args.sessionToken);
     await ctx.db.patch(responderProfile._id, {
       isAvailable: args.isAvailable,
       updatedAt: Date.now(),
@@ -107,7 +151,7 @@ export const listMyIncomingAlerts = query({
     sessionToken: v.string(),
   },
   handler: async (ctx, args) => {
-    const { user } = await getViewer(ctx.db, args.sessionToken);
+    const { user } = await requireResponder(ctx.db, args.sessionToken);
     const alerts = await ctx.db
       .query("incidentAlerts")
       .withIndex("by_responderUserId", (q: any) => q.eq("responderUserId", user._id))
@@ -123,17 +167,62 @@ export const listMyIncomingAlerts = query({
       if (!incident) {
         continue;
       }
-      const profile = await ctx.db
-        .query("profiles")
-        .withIndex("by_userId", (q: any) => q.eq("userId", incident.subjectUserId))
-        .unique();
+
+      const emergency = await getIncidentEmergencySummary(ctx.db, incident);
       enriched.push({
         ...alert,
         incident,
-        medicalSummary: profile ? makeEmergencySummary(profile) : null,
+        patientName: emergency.patientName,
+        medicalSummary: emergency.medicalSummary,
+        etaLabel: formatEtaMinutes(alert.estimatedTravelSeconds),
+        stageLabel: formatEtaStage(alert.stage),
+        incidentLocationLabel: incident.addressText
+          ? incident.addressText
+          : formatCoordinates(incident.lat, incident.lng),
       });
     }
     return enriched;
+  },
+});
+
+export const getMyActiveAssignment = query({
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireResponder(ctx.db, args.sessionToken);
+    const assignments = await ctx.db
+      .query("incidentAssignments")
+      .withIndex("by_responderUserId", (q: any) => q.eq("responderUserId", user._id))
+      .collect();
+
+    const activeAssignment = assignments
+      .filter((assignment: any) => ["assigned", "arrived"].includes(assignment.status))
+      .sort((a: any, b: any) => b.assignedAt - a.assignedAt)[0];
+
+    if (!activeAssignment) {
+      return null;
+    }
+
+    const incident = await ctx.db.get(activeAssignment.incidentId);
+    if (!incident) {
+      return null;
+    }
+
+    const emergency = await getIncidentEmergencySummary(ctx.db, incident);
+    return {
+      assignment: {
+        ...activeAssignment,
+        displayStatus: formatAssignmentStatus(activeAssignment.status),
+        etaLabel: formatEtaMinutes(activeAssignment.etaSeconds),
+      },
+      incident,
+      patientName: emergency.patientName,
+      medicalSummary: emergency.medicalSummary,
+      incidentLocationLabel: incident.addressText
+        ? incident.addressText
+        : formatCoordinates(incident.lat, incident.lng),
+    };
   },
 });
 
@@ -143,10 +232,13 @@ export const acceptAlert = mutation({
     alertId: v.id("incidentAlerts"),
   },
   handler: async (ctx, args) => {
-    const { user } = await getViewer(ctx.db, args.sessionToken);
+    const { user } = await requireResponder(ctx.db, args.sessionToken);
     const alert = await ctx.db.get(args.alertId);
     if (!alert || alert.responderUserId !== user._id) {
       throw new Error("Alert not found.");
+    }
+    if (alert.responseStatus !== "pending") {
+      throw new Error("This alert is no longer available.");
     }
 
     const incident = await ctx.db.get(alert.incidentId);
@@ -165,11 +257,13 @@ export const acceptAlert = mutation({
       assignedAt: now,
       etaSeconds: alert.estimatedTravelSeconds,
       status: "assigned",
+      statusUpdatedAt: now,
     });
 
     await ctx.db.patch(alert._id, {
       responseStatus: "accepted",
       deliveryStatus: "sent",
+      respondedAt: now,
     });
 
     const relatedAlerts = await ctx.db
@@ -178,7 +272,10 @@ export const acceptAlert = mutation({
       .collect();
     for (const related of relatedAlerts) {
       if (related._id !== alert._id && related.responseStatus === "pending") {
-        await ctx.db.patch(related._id, { responseStatus: "timed_out" });
+        await ctx.db.patch(related._id, {
+          responseStatus: "timed_out",
+          respondedAt: now,
+        });
       }
     }
 
@@ -187,18 +284,140 @@ export const acceptAlert = mutation({
       activeAssignmentId: assignmentId,
     });
 
-    await ctx.db.insert("incidentTimeline", {
-      incidentId: incident._id,
-      eventType: "responder_accepted",
-      message: `${user.fullName} accepted the emergency alert.`,
-      actorUserId: user._id,
-      payload: { alertId: alert._id, assignmentId },
-      createdAt: now,
-    });
+    await addTimelineEvent(
+      ctx.db,
+      incident._id,
+      "responder_accepted",
+      `${user.fullName} accepted the emergency alert.`,
+      user._id,
+      { alertId: alert._id, assignmentId },
+    );
 
     return {
       incidentId: incident._id,
       assignmentId,
     };
+  },
+});
+
+export const declineAlert = mutation({
+  args: {
+    sessionToken: v.string(),
+    alertId: v.id("incidentAlerts"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireResponder(ctx.db, args.sessionToken);
+    const alert = await ctx.db.get(args.alertId);
+    if (!alert || alert.responderUserId !== user._id) {
+      throw new Error("Alert not found.");
+    }
+    if (alert.responseStatus !== "pending") {
+      return alert;
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(alert._id, {
+      responseStatus: "declined",
+      respondedAt: now,
+    });
+
+    await addTimelineEvent(
+      ctx.db,
+      alert.incidentId,
+      "responder_declined",
+      `${user.fullName} declined the alert.`,
+      user._id,
+      { alertId: alert._id },
+    );
+
+    return await ctx.db.get(alert._id);
+  },
+});
+
+export const updateAssignmentStatus = mutation({
+  args: {
+    sessionToken: v.string(),
+    assignmentId: v.id("incidentAssignments"),
+    status: v.union(
+      v.literal("assigned"),
+      v.literal("arrived"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireResponder(ctx.db, args.sessionToken);
+    const assignment = await ctx.db.get(args.assignmentId);
+    if (!assignment || assignment.responderUserId !== user._id) {
+      throw new Error("Assignment not found.");
+    }
+
+    const incident = await ctx.db.get(assignment.incidentId);
+    if (!incident) {
+      throw new Error("Incident not found.");
+    }
+
+    const now = Date.now();
+    const patch: Record<string, any> = {
+      status: args.status,
+      statusUpdatedAt: now,
+    };
+    if (args.status === "arrived") {
+      patch.arrivalAt = now;
+    }
+    if (args.status === "completed") {
+      patch.completedAt = now;
+    }
+
+    await ctx.db.patch(assignment._id, patch);
+
+    if (args.status === "completed" || args.status === "cancelled") {
+      await ctx.db.patch(incident._id, {
+        status: "closed",
+        closedAt: now,
+      });
+    }
+
+    await addTimelineEvent(
+      ctx.db,
+      incident._id,
+      "assignment_status_updated",
+      `${user.fullName} marked the assignment as ${args.status}.`,
+      user._id,
+      { assignmentId: assignment._id, status: args.status },
+    );
+
+    return await ctx.db.get(assignment._id);
+  },
+});
+
+export const requestBackup = mutation({
+  args: {
+    sessionToken: v.string(),
+    assignmentId: v.id("incidentAssignments"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireResponder(ctx.db, args.sessionToken);
+    const assignment = await ctx.db.get(args.assignmentId);
+    if (!assignment || assignment.responderUserId !== user._id) {
+      throw new Error("Assignment not found.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(assignment._id, {
+      backupRequestedAt: now,
+      statusUpdatedAt: now,
+    });
+
+    await addTimelineEvent(
+      ctx.db,
+      assignment.incidentId,
+      "backup_requested",
+      `${user.fullName} requested backup.`,
+      user._id,
+      { assignmentId: assignment._id },
+    );
+
+    return await ctx.db.get(assignment._id);
   },
 });

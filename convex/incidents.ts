@@ -8,6 +8,11 @@ import {
   LOCATION_FRESHNESS_MS,
   RESPONDER_PREFILTER_MAX_KM,
   fallbackWalkingEtaSeconds,
+  formatAssignmentStatus,
+  formatCoordinates,
+  formatEtaMinutes,
+  formatEtaStage,
+  formatIncidentStatus,
   getEtaStage,
   haversineDistanceMeters,
   makeEmergencySummary,
@@ -20,6 +25,11 @@ type ResponderCandidate = {
   lng: number;
   approxDistanceMeters: number;
   preferredTravelMode: "walking";
+};
+
+type ResponderEtaCandidate = ResponderCandidate & {
+  estimatedTravelSeconds: number;
+  routeProvider: "google_maps" | "fallback_radius";
 };
 
 async function getSession(db: any, sessionToken: string) {
@@ -73,6 +83,14 @@ async function getIncidentProfile(db: any, incident: any) {
     .unique();
 }
 
+async function getLatestEscalation(db: any, incidentId: any) {
+  const escalations = await db
+    .query("incidentEscalations")
+    .withIndex("by_incidentId", (q: any) => q.eq("incidentId", incidentId))
+    .collect();
+  return escalations.sort((a: any, b: any) => b.startedAt - a.startedAt)[0] ?? null;
+}
+
 export const getActiveIncidentForViewer = query({
   args: {
     sessionToken: v.string(),
@@ -96,7 +114,7 @@ export const getActiveIncidentForViewer = query({
       return null;
     }
 
-    const [profile, timeline, assignment] = await Promise.all([
+    const [profile, timeline, assignment, escalation] = await Promise.all([
       getIncidentProfile(ctx.db, activeIncident),
       ctx.db
         .query("incidentTimeline")
@@ -105,13 +123,29 @@ export const getActiveIncidentForViewer = query({
       activeIncident.activeAssignmentId
         ? ctx.db.get(activeIncident.activeAssignmentId)
         : null,
+      getLatestEscalation(ctx.db, activeIncident._id),
     ]);
+    const assignedResponder = assignment
+      ? await ctx.db.get(assignment.responderUserId)
+      : null;
 
     return {
       incident: activeIncident,
+      displayStatus: formatIncidentStatus(activeIncident.status),
+      escalationLabel: escalation ? formatEtaStage(escalation.stage) : null,
+      incidentLocationLabel: activeIncident.addressText
+        ? activeIncident.addressText
+        : formatCoordinates(activeIncident.lat, activeIncident.lng),
       medicalSummary: profile ? makeEmergencySummary(profile) : null,
       timeline: timeline.sort((a: any, b: any) => a.createdAt - b.createdAt),
-      assignment,
+      assignment: assignment
+        ? {
+            ...assignment,
+            displayStatus: formatAssignmentStatus(assignment.status),
+            etaLabel: formatEtaMinutes(assignment.etaSeconds),
+            responderName: assignedResponder?.fullName ?? "Assigned responder",
+          }
+        : null,
     };
   },
 });
@@ -353,11 +387,11 @@ export const computeResponderEtasWithGoogle = action({
     incidentId: v.id("incidents"),
     maxEtaSeconds: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<ResponderEtaCandidate[]> => {
     const incident = await ctx.runQuery(api.incidents.getIncidentLocation, {
       incidentId: args.incidentId,
     });
-    const candidates = await ctx.runQuery(
+    const candidates: ResponderCandidate[] = await ctx.runQuery(
       api.incidents.getEligibleRespondersForIncident,
       {
         incidentId: args.incidentId,
@@ -369,7 +403,7 @@ export const computeResponderEtasWithGoogle = action({
     }
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-    const limitedCandidates = candidates.slice(0, 25);
+    const limitedCandidates: ResponderCandidate[] = candidates.slice(0, 25);
 
     if (apiKey) {
       try {
@@ -388,7 +422,7 @@ export const computeResponderEtasWithGoogle = action({
         if (response.ok) {
           const payload = await response.json();
           const rows = Array.isArray(payload.rows) ? payload.rows : [];
-          const enriched = limitedCandidates
+          const enriched: ResponderEtaCandidate[] = limitedCandidates
             .map((candidate: ResponderCandidate, index: number) => {
               const element = rows[index]?.elements?.[0];
               const durationSeconds =
@@ -402,8 +436,8 @@ export const computeResponderEtasWithGoogle = action({
                 estimatedTravelSeconds,
                 routeProvider:
                   typeof durationSeconds === "number"
-                    ? "google_maps"
-                    : "fallback_radius",
+                    ? ("google_maps" as const)
+                    : ("fallback_radius" as const),
               };
             })
             .filter((candidate: any) => candidate.estimatedTravelSeconds <= args.maxEtaSeconds)
@@ -423,7 +457,7 @@ export const computeResponderEtasWithGoogle = action({
         estimatedTravelSeconds: fallbackWalkingEtaSeconds(
           candidate.approxDistanceMeters,
         ),
-        routeProvider: "fallback_radius",
+        routeProvider: "fallback_radius" as const,
       }))
       .filter((candidate: any) => candidate.estimatedTravelSeconds <= args.maxEtaSeconds)
       .sort((a: any, b: any) => a.estimatedTravelSeconds - b.estimatedTravelSeconds);
@@ -435,7 +469,7 @@ export const dispatchIncidentStage = action({
     incidentId: v.id("incidents"),
     stageIndex: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ dispatched: number }> => {
     const stage = getEtaStage(args.stageIndex);
     if (!stage) {
       return { dispatched: 0 };
@@ -454,7 +488,7 @@ export const dispatchIncidentStage = action({
       return { dispatched: 0 };
     }
 
-    const responderEtas = await ctx.runAction(
+    const responderEtas: ResponderEtaCandidate[] = await ctx.runAction(
       api.incidents.computeResponderEtasWithGoogle,
       {
         incidentId: args.incidentId,
@@ -597,20 +631,21 @@ export const recordStageDispatch = mutation({
 
     const alertIds = [];
     for (const responder of args.responders) {
-      const alertId = await ctx.db.insert("incidentAlerts", {
-        incidentId: args.incidentId,
-        responderUserId: responder.userId,
-        stage: args.stage,
-        stageIndex: args.stageIndex,
-        maxEtaSeconds: args.maxEtaSeconds,
-        sentAt: now,
-        deliveryStatus: "sent",
-        responseStatus: "pending",
-        estimatedTravelSeconds: responder.estimatedTravelSeconds,
-        travelMode: responder.preferredTravelMode,
-        routeProvider: responder.routeProvider,
-        selectionReason: "eta_within_stage",
-      });
+        const alertId = await ctx.db.insert("incidentAlerts", {
+          incidentId: args.incidentId,
+          responderUserId: responder.userId,
+          stage: args.stage,
+          stageIndex: args.stageIndex,
+          maxEtaSeconds: args.maxEtaSeconds,
+          sentAt: now,
+          deliveryStatus: "sent",
+          responseStatus: "pending",
+          respondedAt: undefined,
+          estimatedTravelSeconds: responder.estimatedTravelSeconds,
+          travelMode: responder.preferredTravelMode,
+          routeProvider: responder.routeProvider,
+          selectionReason: "eta_within_stage",
+        });
       alertIds.push(alertId);
     }
 

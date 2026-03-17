@@ -17,6 +17,7 @@ import { useAppSession } from '@/hooks/use-app-session';
 
 export default function MedicalScreen() {
   const { sessionToken, viewer } = useAppSession();
+  const viewerUser = (viewer as any)?.user;
   const profile = useQuery(
     api.profiles.getMyProfile,
     sessionToken ? { sessionToken } : 'skip',
@@ -91,7 +92,7 @@ export default function MedicalScreen() {
             </View>
           </View>
 
-          <Text style={styles.name}>{viewer?.user?.fullName ?? 'FirstLine User'}</Text>
+          <Text style={styles.name}>{viewerUser?.fullName ?? 'FirstLine User'}</Text>
           <Text style={styles.idNumber}>Convex-backed emergency medical summary</Text>
 
           <View style={styles.infoBar}>

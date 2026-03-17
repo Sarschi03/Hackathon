@@ -17,12 +17,12 @@ import {
 import { api } from '@/convex/_generated/api';
 import { useAppSession } from '@/hooks/use-app-session';
 
-type Role = 'citizen' | 'responder' | 'dual';
+type Role = 'citizen' | 'responder';
 
 export default function SignupScreen() {
   const router = useRouter();
   const { sessionToken, isReady } = useAppSession();
-  const updateIdentity = useMutation(api.session.updateIdentity);
+  const signUp = useMutation(api.session.signUp);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,10 +45,11 @@ export default function SignupScreen() {
     setIsSubmitting(true);
     setError('');
     try {
-      await updateIdentity({
+      await signUp({
         sessionToken,
         fullName: name || 'FirstLine User',
         email,
+        password,
         role,
       });
       router.replace('/(tabs)');
@@ -74,7 +75,7 @@ export default function SignupScreen() {
         </View>
 
         <Text style={styles.heading}>Create account</Text>
-        <Text style={styles.subheading}>Create your Convex-backed emergency profile</Text>
+        <Text style={styles.subheading}>Create a dedicated patient or responder account</Text>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Full Name</Text>
@@ -113,7 +114,6 @@ export default function SignupScreen() {
             {[
               { value: 'citizen', label: 'User' },
               { value: 'responder', label: 'Responder' },
-              { value: 'dual', label: 'Both' },
             ].map((option) => (
               <Pressable
                 key={option.value}
@@ -127,7 +127,7 @@ export default function SignupScreen() {
             ))}
           </View>
           <Text style={styles.helperText}>
-            Responders are created in Convex immediately, but must still be manually verified before receiving alerts.
+            Responders are created as separate accounts and still need verification before receiving alerts.
           </Text>
         </View>
 

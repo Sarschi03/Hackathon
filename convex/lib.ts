@@ -13,6 +13,65 @@ export function getEtaStage(stageIndex: number) {
   return ETA_STAGES[stageIndex] ?? null;
 }
 
+export function formatEtaMinutes(seconds?: number | null) {
+  if (!seconds || seconds <= 0) {
+    return "ETA unavailable";
+  }
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  return `${minutes} min ETA`;
+}
+
+export function formatCoordinates(lat: number, lng: number) {
+  return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}
+
+export function formatIncidentStatus(status: string) {
+  switch (status) {
+    case "pending_confirmation":
+      return "Waiting 10s confirmation window";
+    case "searching_responders":
+      return "Escalating to nearby responders";
+    case "responder_assigned":
+      return "Responder assigned";
+    case "closed":
+      return "Closed";
+    case "cancelled":
+      return "Cancelled";
+    case "false_alarm":
+      return "False alarm";
+    default:
+      return status.replaceAll("_", " ");
+  }
+}
+
+export function formatEtaStage(stage: string) {
+  switch (stage) {
+    case "eta_3m":
+      return "Up to 3 minutes";
+    case "eta_6m":
+      return "Up to 6 minutes";
+    case "eta_10m":
+      return "Up to 10 minutes";
+    default:
+      return stage.replaceAll("_", " ");
+  }
+}
+
+export function formatAssignmentStatus(status: string) {
+  switch (status) {
+    case "assigned":
+      return "Responder en route";
+    case "arrived":
+      return "Responder arrived";
+    case "completed":
+      return "Incident complete";
+    case "cancelled":
+      return "Assignment cancelled";
+    default:
+      return status.replaceAll("_", " ");
+  }
+}
+
 export function haversineDistanceMeters(
   lat1: number,
   lng1: number,

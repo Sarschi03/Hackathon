@@ -20,7 +20,7 @@ import { useAppSession } from '@/hooks/use-app-session';
 export default function LoginScreen() {
   const router = useRouter();
   const { sessionToken, isReady } = useAppSession();
-  const updateIdentity = useMutation(api.session.updateIdentity);
+  const signIn = useMutation(api.session.signIn);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,7 +34,7 @@ export default function LoginScreen() {
     setIsSubmitting(true);
     setError('');
     try {
-      await updateIdentity({ sessionToken, email });
+      await signIn({ sessionToken, email, password });
       router.replace('/(tabs)');
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'Unable to sign in.');
@@ -58,7 +58,7 @@ export default function LoginScreen() {
         </View>
 
         <Text style={styles.heading}>Welcome back</Text>
-        <Text style={styles.subheading}>Sign in to continue with your current device session</Text>
+        <Text style={styles.subheading}>Sign in as a patient or responder with your Convex-backed account</Text>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email</Text>
@@ -98,7 +98,7 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <Text style={styles.helperText}>Passwords are not validated yet in this MVP. Convex stores the session identity and health data flow.</Text>
+        <Text style={styles.helperText}>Password checks now happen inside Convex before the app session is attached to the account.</Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <Pressable

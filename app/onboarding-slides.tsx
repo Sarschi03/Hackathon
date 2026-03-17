@@ -4,7 +4,6 @@ import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
-  Image,
   ImageBackground,
   Pressable,
   StyleSheet,
