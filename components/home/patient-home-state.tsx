@@ -305,9 +305,9 @@ export function PatientHomeState({
                 <ActivityIndicator color="#FFFFFF" size="large" />
               ) : (
                 <>
-                  <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : "SOS!"}</Text>
+                  <Text style={styles.sosText}>{hasActiveIncident ? t('btn_cancel').toUpperCase() : `${t('home_sos')}!`}</Text>
                   {!hasActiveIncident ? (
-                    <Text style={styles.sosSubtext}>Deep press to activate!</Text>
+                    <Text style={styles.sosSubtext}>{t('home_sos_subtext')}</Text>
                   ) : null}
                 </>
               )}

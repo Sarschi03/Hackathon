@@ -39,6 +39,7 @@ export default function OnboardingSlides() {
       kicker: 'Alert',
       title: t('onboarding_1_title'),
       desc: t('onboarding_1_desc'),
+      image: require('../assets/images/mockup1.1.png'),
     },
     {
       key: '2',
@@ -47,6 +48,7 @@ export default function OnboardingSlides() {
       kicker: 'Context',
       title: t('onboarding_2_title'),
       desc: t('onboarding_2_desc'),
+      image: require('../assets/images/mockup_2.png'),
     },
     {
       key: '3',
@@ -55,6 +57,7 @@ export default function OnboardingSlides() {
       kicker: 'Routing',
       title: t('onboarding_3_title'),
       desc: t('onboarding_3_desc'),
+      image: require('../assets/images/mockup_3.png'),
     },
   ];
 
@@ -78,6 +81,7 @@ export default function OnboardingSlides() {
       />
       <View style={styles.radialGlow} />
 
+
       <View style={styles.logoWrapper}>
         <Image
           source={require('../assets/images/icon_black.png')}
@@ -100,30 +104,22 @@ export default function OnboardingSlides() {
         keyExtractor={(item) => item.key}
         renderItem={({ item }) => (
           <View style={styles.slide}>
-            <View style={[styles.featureCard, { borderColor: `${item.accent}33` }]}>
-              <View style={[styles.featureBadge, { backgroundColor: item.accent }]}>
-                <Ionicons name={item.icon} size={26} color="#FFFFFF" />
-              </View>
-              <Text style={styles.featureKicker}>{item.kicker}</Text>
-              <Text style={styles.featureTitle}>{item.title}</Text>
-              <View style={styles.featureGrid}>
-                <View style={styles.featurePill}>
-                  <Text style={styles.featurePillText}>Wearables</Text>
+            {/* Image or placeholder */}
+            <View style={styles.imagePlaceholder}>
+              {item.image ? (
+                <Image
+                  source={item.image}
+                  style={[
+                    styles.mockupImage,
+                    item.key === '3' && { transform: [{ translateX: -40 }] }
+                  ]}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={styles.placeholderBox}>
+                  <Ionicons name="image-outline" size={48} color="#C0C0C0" />
                 </View>
-                <View style={styles.featurePill}>
-                  <Text style={styles.featurePillText}>Profiles</Text>
-                </View>
-                <View style={styles.featurePill}>
-                  <Text style={styles.featurePillText}>Responders</Text>
-                </View>
-              </View>
-              <View style={styles.featureTimeline}>
-                <View style={[styles.timelineDot, { backgroundColor: item.accent }]} />
-                <View style={styles.timelineLine} />
-                <View style={styles.timelineDotMuted} />
-                <View style={styles.timelineLine} />
-                <View style={styles.timelineDotMuted} />
-              </View>
+              )}
             </View>
           </View>
         )}
@@ -173,22 +169,15 @@ const styles = StyleSheet.create({
   mapBg: {
     ...StyleSheet.absoluteFillObject,
   },
-  radialGlow: {
-    position: 'absolute',
-    top: 120,
-    width: width * 0.7,
-    height: width * 0.7,
-    borderRadius: width,
-    backgroundColor: 'rgba(80, 187, 255, 0.12)',
-  },
+
   logoWrapper: {
     alignItems: 'center',
-    marginTop: 32,
-    marginBottom: 20,
+    marginTop: 40,
+    marginBottom: -70,
   },
   logoImage: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     marginBottom: -25,
   },
   logoText: {
@@ -202,7 +191,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
-  featureCard: {
+  imagePlaceholder: {
+    width: width,
+    height: width * 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mockupImage: {
+    width: width * 1.1,
+    height: width * 1.5,
+  },
+  placeholderBox: {
     width: width - 80,
     minHeight: (width - 80) * 1.08,
     backgroundColor: 'rgba(255,255,255,0.84)',
@@ -279,8 +278,9 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     flexDirection: 'row',
-    marginTop: 26,
+    marginTop: -120,
     gap: 10,
+    zIndex: 10,
   },
   dot: {
     width: 10,
@@ -302,14 +302,15 @@ const styles = StyleSheet.create({
     fontFamily: 'InterBold',
   },
   desc: {
-    fontSize: 15,
-    color: '#5F5A52',
+    fontSize: 16,
+    color: '#4A4A4A',
     lineHeight: 24,
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 15,
     marginHorizontal: 40,
     flex: 1,
     fontFamily: 'Inter',
+    zIndex: 10,
   },
   buttonRow: {
     flexDirection: 'row',
