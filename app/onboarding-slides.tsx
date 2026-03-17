@@ -79,6 +79,7 @@ export default function OnboardingSlides() {
         resizeMode="cover"
         imageStyle={{ opacity: 0.25 }}
       />
+      <View style={styles.radialGlow} />
 
 
       <View style={styles.logoWrapper}>
