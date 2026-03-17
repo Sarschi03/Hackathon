@@ -6,6 +6,7 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useConsent } from '@/hooks/use-consent';
 import ConsentScreen from '@/app/consent-screen';
+import { LocalizationProvider } from '@/hooks/use-localization';
 import { AppConvexProvider } from '@/components/convex-provider';
 import { AppSessionProvider } from '@/hooks/use-app-session';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -36,41 +37,50 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
-
-  if (hasConsented === null) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator />
-      </View>
-    );
+  const content = (() => {
+    if (!fontsLoaded && !fontError) {
+      return null;
     }
 
-  if (!hasConsented) {
-    return <ConsentScreen onAccept={acceptConsent} />;
-  }
+    if (hasConsented === null) {
+      return (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator />
+        </View>
+      );
+    }
+
+    if (!hasConsented) {
+      return <ConsentScreen onAccept={acceptConsent} />;
+    }
+
+    return (
+      <Stack>
+        {/* Onboarding flow */}
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding-slides" options={{ headerShown: false }} />
+
+        {/* Auth */}
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="signup" options={{ headerShown: false }} />
+
+        {/* Main app */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
+      </Stack>
+    );
+  })();
 
   return (
     <AppConvexProvider>
       <AppSessionProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            {/* Onboarding flow */}
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding-slides" options={{ headerShown: false }} />
-
-            {/* Auth */}
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="signup" options={{ headerShown: false }} />
-
-            {/* Main app */}
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
+        <LocalizationProvider>
+          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+            {content}
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </LocalizationProvider>
       </AppSessionProvider>
     </AppConvexProvider>
   );

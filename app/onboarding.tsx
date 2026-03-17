@@ -9,11 +9,13 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useLocalization } from '@/hooks/use-localization';
 
 const { width, height } = Dimensions.get('window');
 
 export default function OnboardingWelcome() {
   const router = useRouter();
+  const { t } = useLocalization();
 
   return (
     <View style={styles.root}>
@@ -37,15 +39,8 @@ export default function OnboardingWelcome() {
 
         {/* Bottom content */}
         <View style={styles.bottom}>
-          <Text style={styles.headline}>
-            Be First{' '}
-            <Text style={{ fontStyle: 'italic' }}>in Line{'\n'}</Text>
-            to Save a Life
-          </Text>
-          <Text style={styles.body}>
-            Your all-in-one emergency companion — track vitals, connect to help,
-            and be ready when every second counts.
-          </Text>
+          <Text style={styles.headline}>{t('home_emergency_help')}</Text>
+          <Text style={styles.body}>{t('onboarding_welcome')}</Text>
 
           {/* Glass buttons row */}
           <View style={styles.buttonRow}>
@@ -53,7 +48,7 @@ export default function OnboardingWelcome() {
               style={({ pressed }) => [styles.glassBtn, pressed && { opacity: 0.75 }]}
               onPress={() => router.push('/onboarding-slides')}
             >
-              <Text style={styles.glassBtnText}>Get Started</Text>
+              <Text style={styles.glassBtnText}>{t('btn_get_started')}</Text>
             </Pressable>
 
             <Pressable
@@ -98,6 +93,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#FFFFFF',
     letterSpacing: 0.5,
+    fontFamily: 'Inter',
   },
   bottom: {
     position: 'absolute',
@@ -114,6 +110,7 @@ const styles = StyleSheet.create({
     lineHeight: 42,
     marginBottom: 18,
     textAlign: 'center',
+    fontFamily: 'InterBold',
   },
   body: {
     fontSize: 15,
@@ -121,6 +118,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     marginBottom: 36,
+    fontFamily: 'Inter',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -139,13 +137,13 @@ const styles = StyleSheet.create({
     shadowColor: '#fff',
     shadowOpacity: 0.08,
     shadowRadius: 12,
-    backdropFilter: 'blur(10px)',
   },
   glassBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.3,
+    fontFamily: 'InterSemiBold',
   },
   iconGlassBtn: {
     width: 54,

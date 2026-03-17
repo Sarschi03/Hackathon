@@ -12,6 +12,8 @@ import {
 import Svg, { Line, Path } from "react-native-svg";
 import type { DemoVitalsState } from "@/hooks/use-demo-vitals";
 
+import { useLocalization } from "@/hooks/use-localization";
+
 const { width } = Dimensions.get("window");
 
 const ECG_STRIP_PATH = [
@@ -163,6 +165,7 @@ export function PatientHomeState({
   isSubmitting,
   onSosPress,
 }: PatientHomeStateProps) {
+  const { t } = useLocalization();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const sosScale = useRef(new Animated.Value(1)).current;
@@ -222,8 +225,8 @@ export function PatientHomeState({
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : "SOS!"}</Text>
-                {!hasActiveIncident ? (
+                <Text style={styles.sosText}>{hasActiveIncident ? "CANCEL" : t('home_sos')}</Text>
+                {!hasActiveIncident && (
                   <Text style={styles.sosSubtext}>Hold to activate!</Text>
                 ) : null}
               </>
@@ -239,7 +242,7 @@ export function PatientHomeState({
         ]}
       >
         <Text style={styles.greetingName}>{firstName},</Text>
-        <Text style={styles.greetingTitle}>Check{"\n"}your Vitals!</Text>
+        <Text style={styles.greetingTitle}>{t('home_emergency_help')}</Text>
       </Animated.View>
 
       <Animated.View style={[styles.ekgCard, { opacity: fadeAnim }]}>
@@ -259,26 +262,26 @@ export function PatientHomeState({
 
       <View style={styles.vitalsGrid}>
         <VitalCard
-          label="Pulse"
-          value={vitals.heartRate}
+          label={t('home_pulse')}
+          value={heartRate ?? "98"}
           unit="br/min"
           accentColor="#4BAEE8"
         />
         <VitalCard
-          label="Blood oxygen"
-          value={vitals.bloodOxygen}
+          label={t('home_blood_oxygen')}
+          value={bloodOxygen ?? "98"}
           unit="SpO2%"
           accentColor="#4BAEE8"
         />
         <VitalCard
-          label="Blood Pressure"
-          value={pressure}
+          label={t('home_blood_pressure')}
+          value="118/70"
           unit="mmHg"
           accentColor="#4BAEE8"
         />
         <VitalCard
-          label="Respiratory rate"
-          value={vitals.respiratoryRate}
+          label={t('home_respiratory')}
+          value="16"
           unit="br/min"
           accentColor="#4BAEE8"
         />

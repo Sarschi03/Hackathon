@@ -16,11 +16,13 @@ import {
 } from 'react-native';
 import { api } from '@/convex/_generated/api';
 import { useAppSession } from '@/hooks/use-app-session';
+import { useLocalization } from '@/hooks/use-localization';
 
 type Role = 'citizen' | 'responder';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { t } = useLocalization();
   const { sessionToken, isReady } = useAppSession();
   const signUp = useMutation(api.session.signUp);
   const [name, setName] = useState('');
@@ -74,11 +76,11 @@ export default function SignupScreen() {
           </Text>
         </View>
 
-        <Text style={styles.heading}>Create account</Text>
-        <Text style={styles.subheading}>Create a dedicated patient or responder account</Text>
+        <Text style={styles.heading}>{t('signup_title')}</Text>
+        <Text style={styles.subheading}>{t('signup_subtitle')}</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={styles.label}>{t('signup_name')}</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="person-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
@@ -93,7 +95,7 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('login_email')}</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="mail-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
@@ -109,11 +111,11 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Account Type</Text>
+          <Text style={styles.label}>{t('signup_type')}</Text>
           <View style={styles.roleRow}>
             {[
-              { value: 'citizen', label: 'User' },
-              { value: 'responder', label: 'Responder' },
+              { value: 'citizen', label: t('role_user') },
+              { value: 'responder', label: t('role_responder') },
             ].map((option) => (
               <Pressable
                 key={option.value}
@@ -132,12 +134,12 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('login_password')}</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="lock-closed-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder={t('login_password')}
               placeholderTextColor="#B0B3B8"
               secureTextEntry={!showPassword}
               value={password}
@@ -154,12 +156,12 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Confirm Password</Text>
+          <Text style={styles.label}>{t('signup_confirm')}</Text>
           <View style={styles.inputWrapper}>
             <Ionicons name="lock-closed-outline" size={18} color="#9B9EA3" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Confirm password"
+              placeholder={t('signup_confirm')}
               placeholderTextColor="#B0B3B8"
               secureTextEntry={!showConfirm}
               value={confirm}
@@ -185,14 +187,14 @@ export default function SignupScreen() {
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
-            <Text style={styles.primaryBtnText}>{isReady ? 'Create Account' : 'Preparing session...'}</Text>
+            <Text style={styles.primaryBtnText}>{isReady ? t('btn_create_account') : t('login_title')}</Text>
           )}
         </Pressable>
 
-        <View style={styles.loginRow}>
-          <Text style={styles.loginPrompt}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.loginLink}>Sign In</Text>
+        <View style={styles.signupRow}>
+          <Text style={styles.signupPrompt}>{t('signup_already')} </Text>
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <Text style={styles.signupLink}>{t('btn_login')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -201,38 +203,41 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F7F8FA' },
+  root: { flex: 1, backgroundColor: '#F2F3F5' },
   scroll: { padding: 28, paddingTop: 72, paddingBottom: 60 },
   logoWrapper: { alignItems: 'center', marginBottom: 40 },
-  logoBox: { width: 46, height: 46, backgroundColor: '#1E1E1E', borderRadius: 8, marginBottom: 10 },
-  logoText: { fontSize: 20, color: '#1E1E1E', letterSpacing: 0.5 },
-  heading: { fontSize: 28, fontWeight: '800', color: '#1E1E1E', marginBottom: 6 },
-  subheading: { fontSize: 15, color: '#6C7075', marginBottom: 32 },
+  logoBox: { width: 46, height: 46, backgroundColor: '#1A1C22', borderRadius: 8, marginBottom: 10 },
+  logoText: { fontSize: 20, color: '#1A1C22', letterSpacing: 0.5, fontFamily: 'Inter' },
+  heading: { fontSize: 28, fontWeight: '800', color: '#1A1C22', marginBottom: 6, fontFamily: 'InterBold' },
+  subheading: { fontSize: 15, color: '#64748B', marginBottom: 32, fontFamily: 'Inter' },
   inputGroup: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '600', color: '#3A3A3A', marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '600', color: '#1A1C22', marginBottom: 8, fontFamily: 'InterSemiBold' },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E8E8E8',
+    borderColor: '#E2E8F0',
     paddingHorizontal: 14,
     height: 52,
   },
   inputIcon: { marginRight: 10 },
-  input: { flex: 1, fontSize: 15, color: '#1E1E1E' },
+  input: { flex: 1, fontSize: 15, color: '#1A1C22', fontFamily: 'Inter' },
   eyeBtn: { padding: 4 },
   roleRow: { flexDirection: 'row', gap: 10 },
-  roleChip: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E4E7EB' },
-  roleChipActive: { backgroundColor: '#1E1E1E', borderColor: '#1E1E1E' },
-  roleChipText: { color: '#1E1E1E', fontWeight: '600' },
+  roleChip: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
+  roleChipActive: { backgroundColor: '#1A1C22', borderColor: '#1A1C22' },
+  roleChipText: { color: '#1A1C22', fontWeight: '600', fontFamily: 'InterSemiBold' },
   roleChipTextActive: { color: '#FFFFFF' },
-  helperText: { fontSize: 12, lineHeight: 18, color: '#6C7075', marginTop: 8 },
-  errorText: { color: '#D64545', fontSize: 13, marginBottom: 14 },
-  primaryBtn: { backgroundColor: '#1E1E1E', borderRadius: 50, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
+  helperText: { fontSize: 12, lineHeight: 18, color: '#64748B', marginTop: 8, fontFamily: 'Inter' },
+  errorText: { color: '#DC2626', fontSize: 13, marginBottom: 14, fontFamily: 'Inter' },
+  primaryBtn: { backgroundColor: '#1A1C22', borderRadius: 50, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3, fontFamily: 'InterBold' },
+  signupRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  signupPrompt: { fontSize: 14, color: '#64748B', fontFamily: 'Inter' },
+  signupLink: { fontSize: 14, fontWeight: '700', color: '#1A1C22', fontFamily: 'InterBold' },
   loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  loginPrompt: { fontSize: 14, color: '#6C7075' },
-  loginLink: { fontSize: 14, fontWeight: '700', color: '#1E1E1E' },
+  loginPrompt: { fontSize: 14, color: '#64748B', fontFamily: 'Inter' },
+  loginLink: { fontSize: 14, fontWeight: '700', color: '#1A1C22', fontFamily: 'InterBold' },
 });

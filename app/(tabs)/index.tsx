@@ -20,6 +20,8 @@ import { useAppSession } from "@/hooks/use-app-session";
 import { useDemoVitals } from "@/hooks/use-demo-vitals";
 import { useHealthConnect } from "@/hooks/use-health-connect";
 
+import { useLocalization } from "@/hooks/use-localization";
+
 const FALLBACK_LOCATION = {
   latitude: 46.0569,
   longitude: 14.5058,
@@ -41,6 +43,7 @@ async function getCurrentCoordinates() {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useLocalization();
   const { sessionToken, isReady, viewer, currentRole, isAuthenticated } = useAppSession();
   const { heartRate, bloodOxygen } = useHealthConnect();
   const vitals = useDemoVitals({
@@ -233,15 +236,15 @@ export default function HomeScreen() {
       <View style={styles.safeArea}>
         <View style={styles.authCard}>
           <Text style={styles.authEyebrow}>FirstLine demo</Text>
-          <Text style={styles.authTitle}>Sign in before testing the end-to-end flow.</Text>
+          <Text style={styles.authTitle}>{t('home_emergency_help')}</Text>
           <Text style={styles.authBody}>
             Use a patient account for the SOS side or a responder account for dispatch.
           </Text>
           <Text style={styles.authLink} onPress={() => router.push("/login")}>
-            Go to login
+            {t('login_title')}
           </Text>
           <Text style={styles.authLink} onPress={() => router.push("/signup")}>
-            Create account
+            {t('signup_title')}
           </Text>
         </View>
       </View>
