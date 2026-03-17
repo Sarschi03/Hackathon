@@ -21,7 +21,7 @@ type Locale = 'en' | 'es' | 'fr' | 'de' | 'sl' | 'it';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { sessionToken } = useAppSession();
+  const { sessionToken, logout } = useAppSession();
   const { t, locale, setLocale } = useLocalization();
   const profile = useQuery(
     api.profiles.getMyProfile,
@@ -62,6 +62,24 @@ export default function SettingsScreen() {
     de: 'Deutsch',
     sl: 'Slovenščina',
     it: 'Italiano',
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      t('settings_logout_confirm_title'),
+      t('settings_logout_confirm_desc'),
+      [
+        { text: t('btn_cancel'), style: 'cancel' },
+        { 
+          text: t('btn_logout'), 
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/login');
+          }
+        },
+      ]
+    );
   };
 
   const handleUpdate = async (key: string, value: boolean) => {
@@ -123,6 +141,16 @@ export default function SettingsScreen() {
               <Text style={styles.sublabel}>{languageMap[locale]}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </Pressable>
+        </View>
+
+        <View style={styles.card}>
+          <Pressable style={styles.row} onPress={handleLogout}>
+            <View style={styles.textColumn}>
+              <Text style={[styles.label, { color: '#EF4444' }]}>{t('settings_logout')}</Text>
+              <Text style={styles.sublabel}>{t('settings_logout_desc')}</Text>
+            </View>
+            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           </Pressable>
         </View>
 
