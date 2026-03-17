@@ -15,6 +15,7 @@ import { api } from "@/convex/_generated/api";
 import { ActiveIncidentCard } from "@/components/home/active-incident-card";
 import { EmergencyGuidanceCard } from "@/components/home/emergency-guidance-card";
 import { PatientHomeState } from "@/components/home/patient-home-state";
+import { ResponderGreeting } from "@/components/home/responder-greeting";
 import { ResponderAlertList } from "@/components/home/responder-alert-list";
 import { ResponderAvailabilityCard } from "@/components/home/responder-availability-card";
 import { ResponderVerificationCard } from "@/components/home/responder-verification-card";
@@ -211,19 +212,24 @@ export default function HomeScreen() {
     }
   };
 
-  const handleToggleAvailability = async () => {
+  const handleToggleAvailability = async (nextValue?: boolean) => {
     if (!sessionToken || !responderProfile) {
       return;
     }
+    const isAvailable = nextValue !== undefined ? nextValue : !responderProfile.isAvailable;
+    
     try {
-      await updateViewerLocation("foreground");
+      // Fire status update immediately for speed
       await setAvailability({
         sessionToken,
-        isAvailable: !responderProfile.isAvailable,
+        isAvailable,
       });
+      
+      // Update location in the background without blocking the UI
+      void updateViewerLocation("foreground").catch(() => {});
     } catch (error) {
       Alert.alert(
-        "Responder status failed",
+        "Status update failed",
         error instanceof Error ? error.message : "Please try again.",
       );
     }
@@ -385,9 +391,10 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {currentRole === "responder" ? (
           <>
+            <ResponderGreeting firstName={firstName} />
             <ResponderAvailabilityCard
               responderProfile={responderProfile}
-              onToggleAvailability={() => void handleToggleAvailability()}
+              onToggleAvailability={(val) => void handleToggleAvailability(val)}
               onSelectTravelMode={(mode) => void handleTravelModeChange(mode)}
               onSelectCoverage={(coverage) => void handleCoverageChange(coverage)}
             />
