@@ -108,20 +108,6 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={styles.textColumn}>
-              <Text style={styles.label}>{t('settings_share_medical')}</Text>
-              <Text style={styles.sublabel}>{t('settings_share_medical')}</Text>
-            </View>
-            <Switch
-              value={form.shareMedicalOnEmergency}
-              onValueChange={(v) => handleUpdate('shareMedicalOnEmergency', v)}
-              trackColor={{ false: '#D1D5DB', true: '#4BAEE8' }}
-            />
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.row}>
-            <View style={styles.textColumn}>
               <Text style={styles.label}>{t('settings_share_location')}</Text>
               <Text style={styles.sublabel}>{t('settings_share_location')}</Text>
             </View>

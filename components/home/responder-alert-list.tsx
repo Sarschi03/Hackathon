@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocalization } from "@/hooks/use-localization";
 
 export function ResponderAlertList({
   alerts,
@@ -18,11 +19,13 @@ export function ResponderAlertList({
   onMarkArrived: (assignmentId: string) => void;
   onMarkComplete: (assignmentId: string) => void;
 }) {
+  const { t } = useLocalization();
+
   return (
     <View style={styles.section}>
       {activeAssignment ? (
         <View style={styles.assignmentCard}>
-          <Text style={styles.sectionTitle}>Assigned incident</Text>
+          <Text style={styles.sectionTitle}>{t("resp_assigned_incident")}</Text>
           <Text style={styles.assignmentStatus}>{activeAssignment.assignment.displayStatus}</Text>
           <Text style={styles.assignmentMeta}>
             {activeAssignment.patientName} | {activeAssignment.assignment.etaLabel}
@@ -31,42 +34,44 @@ export function ResponderAlertList({
           <SummaryBlock medicalSummary={activeAssignment.medicalSummary} />
           <View style={styles.actionRow}>
             <SmallAction
-              label="Request backup"
+              label={t("resp_btn_backup")}
               onPress={() => onRequestBackup(String(activeAssignment.assignment._id))}
             />
             <SmallAction
-              label="Arrived"
+              label={t("resp_btn_arrived")}
               onPress={() => onMarkArrived(String(activeAssignment.assignment._id))}
             />
             <SmallAction
-              label="Complete"
+              label={t("resp_btn_complete")}
               onPress={() => onMarkComplete(String(activeAssignment.assignment._id))}
             />
           </View>
         </View>
       ) : null}
 
-      <Text style={styles.sectionTitle}>Incoming alerts</Text>
+      <Text style={styles.sectionTitle}>{t("resp_incoming_alerts")}</Text>
       {alerts && alerts.length > 0 ? (
         alerts.map((alert) => (
           <View key={alert._id} style={styles.alertCard}>
-            <Text style={styles.alertEta}>{alert.etaLabel}</Text>
+            <Text style={alert.etaLabel === "URGENT" ? [styles.alertEta, { color: "#EF4444" }] : styles.alertEta}>
+              {alert.etaLabel}
+            </Text>
             <Text style={styles.alertPatient}>{alert.patientName}</Text>
             <Text style={styles.alertMeta}>
               {alert.stageLabel} | {alert.travelModeLabel} | {alert.incidentLocationLabel}
             </Text>
             <SummaryBlock medicalSummary={alert.medicalSummary} />
             <View style={styles.actionRow}>
-              <SmallAction label="Decline" secondary onPress={() => onDecline(String(alert._id))} />
-              <SmallAction label="Accept" onPress={() => onAccept(String(alert._id))} />
+              <SmallAction label={t("resp_decline")} secondary onPress={() => onDecline(String(alert._id))} />
+              <SmallAction label={t("resp_accept")} onPress={() => onAccept(String(alert._id))} />
             </View>
           </View>
         ))
       ) : (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No active alerts</Text>
+          <Text style={styles.emptyTitle}>{t("resp_no_alerts")}</Text>
           <Text style={styles.emptyBody}>
-            Keep availability on and location fresh to receive the next incident.
+            {t("resp_no_alerts_desc")}
           </Text>
         </View>
       )}
@@ -75,13 +80,14 @@ export function ResponderAlertList({
 }
 
 function SummaryBlock({ medicalSummary }: { medicalSummary: any }) {
+  const { t } = useLocalization();
   return (
     <View style={styles.summaryBox}>
-      <Text style={styles.summaryTitle}>Emergency summary</Text>
-      <Text style={styles.summaryLine}>Blood group: {medicalSummary?.bloodGroup || "Unknown"}</Text>
-      <Text style={styles.summaryLine}>Allergies: {medicalSummary?.allergies || "None listed"}</Text>
-      <Text style={styles.summaryLine}>Conditions: {medicalSummary?.conditions || "None listed"}</Text>
-      <Text style={styles.summaryLine}>Medications: {medicalSummary?.medications || "None listed"}</Text>
+      <Text style={styles.summaryTitle}>{t("resp_emergency_summary")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_blood_group")}: {medicalSummary?.bloodGroup || t("resp_unknown")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_allergies")}: {medicalSummary?.allergies || t("resp_none")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_conditions")}: {medicalSummary?.conditions || t("resp_none")}</Text>
+      <Text style={styles.summaryLine}>{t("resp_medications")}: {medicalSummary?.medications || t("resp_none")}</Text>
     </View>
   );
 }

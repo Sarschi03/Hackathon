@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { useLocalization } from "@/hooks/use-localization";
 
 export function ResponderAvailabilityCard({
   responderProfile,
@@ -11,6 +12,7 @@ export function ResponderAvailabilityCard({
   onSelectTravelMode: (mode: "walking" | "driving") => void;
   onSelectCoverage?: (maxAlertEtaSeconds: number) => void;
 }) {
+  const { t } = useLocalization();
   const [localIsAvailable, setLocalIsAvailable] = React.useState(
     Boolean(responderProfile?.isAvailable)
   );
@@ -30,25 +32,25 @@ export function ResponderAvailabilityCard({
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.eyebrow}>
-            {localIsAvailable ? "AVAILABLE" : "UNAVAILABLE"}
+            {localIsAvailable ? t("resp_available") : t("resp_unavailable")}
           </Text>
           <Text style={styles.title}>
             {responderProfile?.verificationStatus === "verified"
-              ? "Live Dispatch"
-              : "Verification Pending"}
+              ? t("resp_live_dispatch")
+              : t("resp_verification_pending")}
           </Text>
         </View>
       </View>
 
       <Text style={styles.meta}>
-        Your current travel mode ensures accurate ETA calculations for incoming alerts.
+        {t("resp_travel_mode_desc")}
       </Text>
 
       <Pressable 
         style={styles.toggleRow} 
         onPress={() => handleToggle(!localIsAvailable)}
       >
-        <Text style={styles.toggleLabel}>Availability Status</Text>
+        <Text style={styles.toggleLabel}>{t("resp_availability_status")}</Text>
         <Switch
           value={localIsAvailable}
           onValueChange={handleToggle}
@@ -74,7 +76,7 @@ export function ResponderAvailabilityCard({
               responderProfile?.preferredTravelMode !== "driving" && styles.modeButtonTextActive,
             ]}
           >
-            Walking
+            {t("resp_walking")}
           </Text>
         </Pressable>
         <Pressable
@@ -90,7 +92,7 @@ export function ResponderAvailabilityCard({
               responderProfile?.preferredTravelMode === "driving" && styles.modeButtonTextActive,
             ]}
           >
-            Driving
+            {t("resp_driving")}
           </Text>
         </Pressable>
       </View>

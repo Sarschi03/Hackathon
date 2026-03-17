@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useLocalization } from "@/hooks/use-localization";
 
 type VerificationState = {
   profile?: {
@@ -37,6 +38,7 @@ export function ResponderVerificationCard({
   onSubmitVerification,
   onApproveDemo,
 }: ResponderVerificationCardProps) {
+  const { t } = useLocalization();
   const [qualificationType, setQualificationType] = useState(
     verificationState?.profile?.qualificationType ??
       verificationState?.latestSubmission?.qualificationType ??
@@ -55,13 +57,13 @@ export function ResponderVerificationCard({
   const status = verificationState?.profile?.verificationStatus ?? "pending";
   const reviewLabel = useMemo(() => {
     if (status === "verified") {
-      return "Verified and eligible for dispatch";
+      return t("resp_verified_desc");
     }
     if (status === "rejected") {
-      return "Needs an updated credential submission";
+      return t("resp_rejected_desc");
     }
-    return "Submit credentials to unlock dispatching";
-  }, [status]);
+    return t("resp_pending_desc");
+  }, [status, t]);
 
   async function handleSubmit() {
     if (!qualificationType.trim()) {
@@ -94,7 +96,7 @@ export function ResponderVerificationCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>Responder verification</Text>
+          <Text style={styles.eyebrow}>{t("resp_verification_title")}</Text>
           <Text style={styles.title}>{reviewLabel}</Text>
         </View>
         <View style={[styles.statusChip, status === "verified" && styles.statusChipVerified]}>
@@ -106,21 +108,21 @@ export function ResponderVerificationCard({
         style={styles.input}
         value={qualificationType}
         onChangeText={setQualificationType}
-        placeholder="EMT, doctor, nurse, CPR-certified volunteer"
+        placeholder={t("resp_placeholder_qualification")}
         placeholderTextColor="#94A3B8"
       />
       <TextInput
         style={styles.input}
         value={certificationNumber}
         onChangeText={setCertificationNumber}
-        placeholder="License or certificate number"
+        placeholder={t("resp_placeholder_cert")}
         placeholderTextColor="#94A3B8"
       />
       <TextInput
         style={[styles.input, styles.notesInput]}
         value={notes}
         onChangeText={setNotes}
-        placeholder="Optional notes for the operations team"
+        placeholder={t("resp_placeholder_notes")}
         placeholderTextColor="#94A3B8"
         multiline
       />
@@ -134,11 +136,11 @@ export function ResponderVerificationCard({
       <View style={styles.actions}>
         <Pressable style={styles.primaryButton} onPress={() => void handleSubmit()} disabled={isSubmitting}>
           <Text style={styles.primaryButtonText}>
-            {isSubmitting ? "Working..." : "Submit verification"}
+            {isSubmitting ? "Working..." : t("resp_btn_submit")}
           </Text>
         </Pressable>
         <Pressable style={styles.secondaryButton} onPress={() => void handleDemoApprove()} disabled={isSubmitting}>
-          <Text style={styles.secondaryButtonText}>Approve for demo</Text>
+          <Text style={styles.secondaryButtonText}>{t("resp_btn_approve_demo")}</Text>
         </Pressable>
       </View>
     </View>
