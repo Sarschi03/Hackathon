@@ -1,5 +1,6 @@
 import React from "react";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useLocalization } from "@/hooks/use-localization";
 
 export function ResponderAlertList({
   alerts,

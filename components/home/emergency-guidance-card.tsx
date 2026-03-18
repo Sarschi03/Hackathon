@@ -35,9 +35,7 @@ export function EmergencyGuidanceCard({
           <Text style={styles.eyebrow}>{t("guidance_eyebrow")}</Text>
           <Text style={styles.title}>{t("guidance_title")}</Text>
         </View>
-        <View style={[styles.riskChip, riskLabel === t("guidance_risk_elevated") && styles.riskChipAlert]}>
-          <Text style={styles.riskChipText}>{riskLabel}</Text>
-        </View>
+
       </View>
 
       {GUIDANCE_STEPS.map((step, index) => (
